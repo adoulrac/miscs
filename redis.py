@@ -14,3 +14,25 @@ def list_topics(redis_conn):
 if __name__ == "__main__":
     redis_conn = redis.Redis(host='localhost', port=6379, db=0)
     list_topics(redis_conn)
+    
+    
+DECLARE
+    CURSOR config_cur IS
+        SELECT ID, QUERY_TEXT FROM CONFIG_TABLE;
+    
+    l_query_text VARCHAR2(4000);
+    l_record_count NUMBER;
+BEGIN
+    FOR rec IN config_cur LOOP
+        l_query_text := rec.QUERY_TEXT;
+
+        -- Dynamically execute the query and count the records
+        EXECUTE IMMEDIATE 'SELECT COUNT(*) FROM (' || l_query_text || ')' INTO l_record_count;
+
+        -- Insert the result into the result table
+        INSERT INTO RESULT_TABLE (QUERY_ID, RECORD_COUNT, EXECUTION_DATE)
+        VALUES (rec.ID, l_record_count, SYSDATE);
+    END LOOP;
+
+    COMMIT;
+END;
