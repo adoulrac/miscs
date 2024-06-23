@@ -185,3 +185,81 @@ def display_user_info(pathname):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+import websocket
+import json
+
+def authenticate_and_check_entitlement(username, app_id, instruments_services):
+    ws_url = "wss://your-trep-websocket-endpoint"
+
+    def send_request(ws, request):
+        ws.send(json.dumps(request))
+        return json.loads(ws.recv())
+
+    try:
+        ws = websocket.WebSocket()
+        ws.connect(ws_url)
+
+        # Step 1: Authenticate the user
+        auth_request = {
+            "ID": 1,
+            "Domain": "Login",
+            "Key": {
+                "Name": username,
+                "Elements": {
+                    "ApplicationId": app_id
+                }
+            }
+        }
+        auth_response = send_request(ws, auth_request)
+
+        if auth_response["State"]["Stream"] != "Open" or auth_response["State"]["Data"] != "Ok":
+            print("Authentication failed")
+            return False
+
+        print("Authenticated successfully")
+
+        # Step 2: Check entitlements for each instrument and service
+        entitlements_check = {}
+        for instrument, service in instruments_services:
+            dacs_request = {
+                "ID": 2,
+                "Domain": "Source",
+                "Key": {
+                    "Name": instrument,
+                    "Service": service
+                }
+            }
+            dacs_response = send_request(ws, dacs_request)
+
+            if dacs_response["State"]["Stream"] == "Open" and dacs_response["State"]["Data"] == "Ok":
+                entitlements_check[(instrument, service)] = True
+            else:
+                entitlements_check[(instrument, service)] = False
+
+        ws.close()
+
+        return entitlements_check
+
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return False
+
+# Example usage
+username = "your_username"
+app_id = "your_app_id"
+instruments_services = [("AAPL", "Bloomberg_feed"), ("GOOGL", "IDN_selectfeed"), ("MSFT", "Bloomberg_feed")]
+
+entitlements = authenticate_and_check_entitlement(username, app_id, instruments_services)
+print(entitlements)
