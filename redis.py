@@ -107,3 +107,81 @@ def logout_if_inactive(n_intervals, last_active_timestamp):
 
 if __name__ == '__main__':
     app.run_server(debug=True)
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+from dash import Dash, html, dcc
+import dash
+from flask import Flask, redirect, url_for, session
+from authlib.integrations.flask_client import OAuth
+from datetime import timedelta
+
+# Flask server setup
+server = Flask(__name__)
+app = Dash(__name__, server=server, suppress_callback_exceptions=True)
+app.server.secret_key = 'YOUR_SECRET_KEY'
+
+# Authlib client setup
+oauth = OAuth(app.server)
+oauth.register(
+    name='auth_provider',
+    client_id='YOUR_CLIENT_ID',
+    client_secret='YOUR_CLIENT_SECRET',
+    access_token_url='https://YOUR_AUTH_PROVIDER.com/oauth/token',
+    authorize_url='https://YOUR_AUTH_PROVIDER.com/oauth/authorize',
+    redirect_uri='http://localhost:8050/auth',
+    client_kwargs={'scope': 'openid profile email'}
+)
+
+@app.server.route('/login')
+def login():
+    redirect_uri = url_for('authorize', _external=True)
+    return oauth.auth_provider.authorize_redirect(redirect_uri)
+
+@app.server.route('/auth')
+def authorize():
+    token = oauth.auth_provider.authorize_access_token()
+    user = oauth.auth_provider.parse_id_token(token)
+    session['user'] = user
+    return redirect('/')
+
+@app.server.route('/logout')
+def logout():
+    session.pop('user', None)
+    return redirect('/')
+
+# Session timeout settings
+@app.server.before_request
+def before_request():
+    session.permanent = True
+    app.server.permanent_session_lifetime = timedelta(minutes=30)
+    session.modified = True
+
+# Dash layout and callbacks
+app.layout = html.Div([
+    html.H1('SSO Dash App'),
+    html.Div(id='user-info'),
+    dcc.Location(id='url', refresh=True)
+])
+
+@app.callback(dash.dependencies.Output('user-info', 'children'),
+              [dash.dependencies.Input('url', 'pathname')])
+def display_user_info(pathname):
+    user = session.get('user', None)
+    if user:
+        return f'Logged in as: {user["name"]}'
+    return 'You are not logged in.'
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
