@@ -1,4 +1,85 @@
+import dash
+import dash_bootstrap_components as dbc
+from dash import html, Input, Output
 
+# Initialize Dash app with Bootstrap theme
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# Custom CSS to style the logoff button
+app.index_string = '''
+<!DOCTYPE html>
+<html>
+    <head>
+        {%metas%}
+        <title>{%title%}</title>
+        {%favicon%}
+        {%css%}
+        <style>
+            .btn-logoff {
+                color: white !important;
+                background-color: #007bff !important; /* Blue color */
+                border: none;
+            }
+            .btn-logoff:hover {
+                background-color: #0056b3 !important; /* Darker blue on hover */
+            }
+        </style>
+    </head>
+    <body>
+        {%app_entry%}
+        <footer>
+            {%config%}
+            {%scripts%}
+            {%renderer%}
+        </footer>
+    </body>
+</html>
+'''
+
+# Layout with NavbarSimple and Logoff Button
+app.layout = html.Div([
+    dbc.NavbarSimple(
+        brand="My Dashboard",
+        brand_href="#",
+        color="primary",
+        dark=True,
+        children=[
+            # Left-aligned nav items
+            dbc.NavItem(dbc.NavLink("Home", href="#")),
+            dbc.NavItem(dbc.NavLink("Page 1", href="#")),
+            dbc.NavItem(dbc.NavLink("Page 2", href="#")),
+            # Right-aligned logoff button using ml-auto
+            dbc.Nav(
+                [
+                    dbc.NavItem(
+                        html.A(
+                            dbc.Button("Logoff", id="logoff-button", className="btn-logoff"),
+                            href="/logout-url"  # Specify the URL to redirect to
+                        )
+                    )
+                ],
+                className="ml-auto",
+                navbar=True,
+            )
+        ]
+    ),
+    html.Div(id='logoff-output')
+])
+
+# Callback to handle logoff button click
+@app.callback(
+    Output('logoff-output', 'children'),
+    Input('logoff-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def logoff_user(n_clicks):
+    if n_clicks is not None:
+        # Perform logoff actions here, e.g., closing WebSocket connection, clearing session data, etc.
+        return "Logged off successfully."
+    return ""
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
 
 import dash
 import dash_bootstrap_components as dbc
