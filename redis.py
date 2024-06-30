@@ -1,4 +1,48 @@
 
+
+import dash
+import dash_bootstrap_components as dbc
+from dash import html, dcc, Input, Output
+
+# Initialize Dash app with Bootstrap theme
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+# Layout with NavbarSimple and Logoff Button
+app.layout = html.Div([
+    dbc.NavbarSimple(
+        brand="My Dashboard",
+        brand_href="#",
+        color="primary",
+        dark=True,
+        children=[
+            dbc.NavItem(dbc.NavLink("Home", href="#")),
+            dbc.NavItem(dbc.NavLink("Page 1", href="#")),
+            dbc.NavItem(dbc.NavLink("Page 2", href="#")),
+            dbc.NavItem(
+                dbc.Button("Logoff", id="logoff-button", color="danger", className="ml-auto"),
+                className="ml-auto"
+            )
+        ]
+    ),
+    html.Div(id='logoff-output')
+])
+
+# Callback to handle logoff button click
+@app.callback(
+    Output('logoff-output', 'children'),
+    Input('logoff-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def logoff_user(n_clicks):
+    if n_clicks is not None:
+        # Perform logoff actions here, e.g., closing WebSocket connection, clearing session data, etc.
+        return "Logged off successfully."
+    return ""
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
 from dash import Dash, html, dcc, Input, Output, State
 import dash
 
