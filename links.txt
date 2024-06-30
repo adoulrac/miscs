@@ -1,4 +1,361 @@
-https://www.presentationgo.com/presentation/category/timelines-planning/gantt-charts/
-https://www.officetimeline.com/gantt-chart/how-to-make/powerpoint
-https://create.microsoft.com/en-us/search?query=chart
-https://24slides.com/templates/organization-planning
+### Functional Specifications Document (FSD)
+
+**Project Title**: Data Feed Detection, Onboarding, and Reconciliation Application
+
+**Prepared by**: [Your Name]
+
+**Date**: [Date]
+
+---
+
+#### 1. Introduction
+
+**1.1 Purpose**
+
+This document provides the functional specifications for an application designed to detect new data feeds entering a database, initiate a workflow for onboarding and approval, and perform reconciliation to ensure the accuracy and completeness of data used by production surveillance models. The application aims to streamline the detection and onboarding process, improve data governance, and ensure regulatory compliance.
+
+**1.2 Scope**
+
+The application will:
+- Detect new data feeds based on daily load logs.
+- Notify database administrators and require their input on the new feeds.
+- Notify surveillance business analysts for compliance review and onboarding status.
+- Detect persistency tables used by production surveillance models.
+- Perform reconciliation to detect mismatches and potential gaps between detected data feeds and persistency tables.
+
+#### 2. Functional Requirements
+
+**2.1 Data Feed Detection**
+
+- The application will scan the database daily to detect any new tables with successfully loaded data. This ensures timely awareness of new data sources.
+- Detection will be based on the analysis of load logs stored in the database, which log the status of data loads.
+
+**2.2 Workflow Initiation**
+
+- Upon detection of a new data feed, the application will automatically send an email notification to the database administrators.
+- A workflow will be initiated, requiring the database administrators to fill out specific information about the new feed, ensuring that all necessary details are captured for further processing.
+
+**2.3 Administrator Dashboard**
+
+- A dedicated section for database administrators will be available in the dashboard. This provides a centralized location for managing new data feeds.
+- Database administrators must provide the following details:
+  - Loader name
+  - Frequency
+  - Data type
+  - Upstream source application ID
+  - Upstream source application name
+  - Persistency table and schema
+- Database administrators must also approve whether the source is relevant for regulatory purposes, such as trade, pre-trade, or market data. This ensures that only pertinent data is flagged for regulatory scrutiny.
+
+**2.4 Notification to Surveillance Business Analysts**
+
+- After database administrators complete their input, surveillance business analysts will receive an email notification.
+- Analysts will access a dedicated subsection in the dashboard to analyze the new feed. This ensures a systematic review process by the compliance teams.
+
+**2.5 Analyst Review**
+
+- Surveillance business analysts, along with the FOCS and compliance teams, will review the new feed.
+- Analysts will determine whether the new feed should be used for surveillance models. This step is crucial for maintaining the integrity of surveillance systems.
+- Analysts will provide a status update on the onboarding process, ensuring transparency and accountability.
+
+**2.6 Persistency Table Detection and Reconciliation**
+
+- The application will detect persistency tables used by production surveillance models.
+- A reconciliation process will compare these tables with the detected data feeds to identify mismatches and potential gaps.
+- Any discrepancies will be flagged for further investigation and resolution, ensuring data consistency and completeness.
+
+#### 3. Non-Functional Requirements
+
+**3.1 Performance**
+
+- The application should detect new data feeds and send notifications within 24 hours of data load completion.
+- The dashboard should load within 2 seconds for all users, ensuring a smooth user experience.
+- The reconciliation process should complete within a reasonable timeframe (e.g., within 1 hour of initiation) to maintain efficiency.
+
+**3.2 Security**
+
+- Only authorized personnel (database administrators and surveillance business analysts) should have access to the respective sections of the dashboard.
+- Data integrity and confidentiality must be maintained throughout the process, protecting sensitive information.
+
+**3.3 Usability**
+
+- The user interface should be intuitive and easy to navigate, minimizing the learning curve for users.
+- Clear instructions and error messages should be provided to guide users through the process, enhancing user experience.
+
+**3.4 Reliability**
+
+- The system should have 99.9% uptime, ensuring continuous availability.
+- Robust error handling and logging mechanisms should be in place to track any issues, aiding in prompt resolution.
+
+#### 4. System Architecture
+
+**4.1 Components**
+
+- **Data Feed Detection Module**: Scans the database and detects new data feeds.
+- **Notification Module**: Sends email notifications to relevant stakeholders.
+- **Administrator Dashboard**: Interface for database administrators to provide details and approvals.
+- **Analyst Dashboard**: Interface for surveillance business analysts to review and approve feeds.
+- **Reconciliation Module**: Compares persistency tables with detected data feeds and identifies discrepancies.
+
+**4.2 Integration**
+
+- The application will integrate with the existing database to access load logs and data feeds.
+- Email notifications will be sent via the corporate email system.
+- The dashboard will be part of the existing web application, ensuring a seamless user experience.
+
+#### 5. User Interface
+
+**5.1 Administrator Dashboard**
+
+- Sections for entering feed details, ensuring comprehensive data capture.
+- Approval buttons for regulatory relevance, simplifying the approval process.
+
+**5.2 Analyst Dashboard**
+
+- Sections for reviewing feed information, facilitating thorough analysis.
+- Status update fields, ensuring clear communication and tracking.
+
+**5.3 Reconciliation Dashboard**
+
+- Display detected persistency tables and comparison results.
+- Highlight mismatches and gaps for investigation, aiding in quick resolution.
+
+#### 6. Workflow Diagram
+
+**Workflow Representation**
+
+1. **Data Feed Detection**:
+   - The system scans the database daily.
+   - New tables with successfully loaded data are detected.
+
+2. **Notification and Workflow Initiation**:
+   - Email notifications are sent to database administrators.
+   - Administrators access the dashboard to provide feed details.
+
+3. **Administrator Input**:
+   - Administrators fill in details such as loader name, frequency, data type, etc.
+   - Approval for regulatory relevance is provided.
+
+4. **Notification to Analysts**:
+   - Email notifications are sent to surveillance business analysts.
+   - Analysts access the dashboard to review new feeds.
+
+5. **Analyst Review**:
+   - Analysts review feed information and determine its relevance for surveillance models.
+   - Analysts update the status of the feed onboarding process.
+
+6. **Persistency Table Detection**:
+   - The system detects persistency tables used by production surveillance models.
+
+7. **Reconciliation Process**:
+   - Detected persistency tables are compared with data feeds.
+   - Mismatches and gaps are identified and flagged for investigation.
+
+---
+
+**Signatures**
+
+*Prepared by:*
+[Your Name]
+
+*Reviewed by:*
+[Reviewer Name]
+
+*Approved by:*
+[Approver Name]
+
+---
+
+This FSD outlines the functional requirements and specifications for the Data Feed Detection, Onboarding, and Reconciliation Application. This ensures all new data feeds are properly detected, reviewed, reconciled, and utilized for compliance purposes, enhancing data governance and regulatory adherence.
+
+
+
+
+
+
+
+
+
+
+# Functional Specification Document (FSD)
+
+## 1. Introduction
+
+### 1.1 Purpose
+This document details the functional specifications for an application designed to trace data filtered during pre-processing before surveillance models run. The application includes a configurable dashboard for data consultation and lineage visualization. It aims to provide transparency and traceability by identifying filtered messages and displaying their flow from source to alert generation.
+
+### 1.2 Scope
+The application allows users to configure data sources, define filtering rules, and compare data to detect and justify filtered messages. It also provides a data lineage view to track data flow from the data source to the alert generation phase. This tool is intended for database administrators and surveillance business analysts who need to understand data filtering processes and ensure data integrity and compliance.
+
+### 1.3 Definitions, Acronyms, and Abbreviations
+- **FSD:** Functional Specification Document
+- **ID:** Identifier
+- **UI:** User Interface
+- **Datamart:** A subset of a data warehouse focused on a particular area of interest.
+
+### 1.4 References
+- [Surveillance Model Documentation]
+- [Database Schema]
+- [User Guide]
+
+## 2. Overall Description
+
+### 2.1 Product Perspective
+The application integrates into the existing surveillance system, enhancing data transparency and traceability by identifying filtered messages and providing detailed lineage from data sources to alert generation. It serves as a crucial tool for monitoring and ensuring the accuracy and reliability of data used in surveillance models.
+
+### 2.2 Product Functions
+- Configure data sources and target tables.
+- Define and apply filtering rules.
+- Compare data to detect filtered messages.
+- Display counts of filtered rows.
+- Provide technical and functional justifications for filtered messages.
+- Visualize data lineage from source to alert generation.
+
+### 2.3 User Characteristics
+The primary users are database administrators and surveillance business analysts who require insights into data filtering and flow within the surveillance system. These users typically have a technical background and are responsible for maintaining data integrity, compliance, and performance of surveillance models.
+
+### 2.4 Assumptions and Dependencies
+- The application assumes access to the required databases and tables.
+- Dependencies include the underlying database management system and the existing surveillance models.
+- The system should be compatible with the data formats and schemas used in the current surveillance infrastructure.
+
+## 3. Functional Requirements
+
+### 3.1 Data Source Configuration
+
+#### 3.1.1 Description
+Users can configure the source of data, including the selection of the persistency table and the target datamart table name. This configuration allows the application to retrieve and process the relevant data for analysis.
+
+#### 3.1.2 Inputs
+- Source table name
+- Persistency table name
+- Target datamart table name
+
+#### 3.1.3 Processing
+The application stores the configuration settings and uses them to access the necessary tables. It retrieves data from the source table and persistency table, then prepares it for comparison against the target datamart table.
+
+#### 3.1.4 Outputs
+- Confirmation message on successful configuration
+- Error messages for invalid inputs
+- Log entries detailing the configuration process
+
+### 3.2 Data Filtering and Comparison
+
+#### 3.2.1 Description
+The application traces and compares data to detect filtered messages by utilizing a message ID column. It identifies discrepancies between the source and target tables, highlighting messages that have been filtered out during pre-processing.
+
+#### 3.2.2 Inputs
+- Message ID column
+- Filtering rules
+
+#### 3.2.3 Processing
+The application performs a comparison of data between the source, persistency, and target tables based on the message ID column. It identifies filtered messages and counts the number of rows filtered out during the pre-processing stage.
+
+#### 3.2.4 Outputs
+- Count of filtered rows
+- Detailed logs of filtered messages, including their IDs and reasons for filtering
+- Reports summarizing the filtering results
+
+### 3.3 Filtering Rules
+
+#### 3.3.1 Description
+Users can define filtering rules to justify filtered messages both technically and functionally. These rules determine which messages are filtered out during pre-processing based on specific conditions.
+
+#### 3.3.2 Inputs
+- Rule name
+- Condition (e.g., message type, value thresholds)
+
+#### 3.3.3 Processing
+The application applies the defined rules to filter data during the pre-processing stage. It evaluates each message against the filtering conditions and marks those that meet the criteria as filtered.
+
+#### 3.3.4 Outputs
+- Report or log of applied filtering rules and their results
+- Justification for each filtered message based on the applied rules
+
+### 3.4 Dashboard and Data Lineage
+
+#### 3.4.1 Description
+The dashboard provides functionalities including a data lineage section that visualizes data flow from the source to alert generation. Users can consult the dashboard to see the entire lifecycle of data, from initial ingestion to final alert generation.
+
+#### 3.4.2 Inputs
+- Data source configuration
+- Filtering results
+
+#### 3.4.3 Processing
+The application compiles and displays data lineage information and filtering results on the dashboard. It aggregates data from different stages of the process to provide a comprehensive view of data flow and filtering activities.
+
+#### 3.4.4 Outputs
+- Visual representations of data flow
+- Counts of alerts generated
+- Interactive charts and graphs showing data lineage and filtering metrics
+
+## 4. System Features
+
+### 4.1 User Interface
+The UI includes sections for data source configuration, filtering rules definition, data comparison results, and data lineage visualization. It is designed to be intuitive and user-friendly, allowing users to easily navigate and access the functionalities they need.
+
+### 4.2 Reports
+The application generates detailed reports that include filtered messages, applied rules, and data lineage. These reports can be used for auditing, compliance, and performance analysis.
+
+### 4.3 Notifications
+The application provides notifications for configuration changes, filtering results, and system errors. These notifications help users stay informed about important events and potential issues.
+
+### 4.4 Data Export
+Users can export data and reports in formats such as CSV and PDF. This feature allows users to share information with stakeholders and perform further analysis outside the application.
+
+## 5. Non-Functional Requirements
+
+### 5.1 Performance Requirements
+- The application should respond to user actions within 2 seconds.
+- Data comparison and filtering processes should complete within 1 minute for typical datasets.
+- The system should handle large volumes of data efficiently, ensuring timely processing and analysis.
+
+### 5.2 Security Requirements
+- User authentication and authorization are required for access.
+- Data should be encrypted in transit and at rest.
+- The application should comply with relevant data protection regulations and industry standards.
+
+### 5.3 Usability Requirements
+- The application should have an intuitive and user-friendly interface.
+- Accessible for users with varying levels of technical expertise.
+- The design should prioritize clarity, ease of use, and efficient navigation.
+
+### 5.4 Reliability Requirements
+- The application should have an uptime of 99.9%.
+- Error handling should ensure graceful degradation and informative error messages.
+- The system should provide robust logging and monitoring to facilitate troubleshooting and maintenance.
+
+### 5.5 Maintainability Requirements
+- The application should support easy updates and configuration changes.
+- Documentation should be provided for maintenance and support.
+- The codebase should be modular and well-documented to facilitate future enhancements and debugging.
+
+## 6. Appendices
+
+### 6.1 Glossary
+- **Filtered Message:** A message that has been excluded based on predefined rules.
+- **Data Lineage:** The historical and chronological flow of data from source to destination.
+- **Persistency Table:** A table that stores intermediate data during processing.
+- **Datamart:** A subset of a data warehouse focused on a particular area of interest.
+
+### 6.2 Diagrams
+- **Data Flow Diagram:** (Include diagram showing data flow from source to alerts generation)
+- **Architecture Diagram:** (Include diagram showing the system architecture)
+
+### 6.3 Sample Data
+- **Input Data Example:** (Provide sample input data)
+- **Output Data Example:** (Provide sample output data)
+
+### 6.4 References
+- [Surveillance Model Documentation]
+- [Database Schema]
+- [User Guide]
+
+---
+
+This revised FSD includes more detailed explanations of each process, providing a comprehensive overview of the application's functionalities and requirements.
+
+
+
+
+
