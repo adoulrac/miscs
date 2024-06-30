@@ -1,3 +1,97 @@
+
+
+
+
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.middleware.wsgi import WSGIMiddleware
+from dash import Dash, html, dcc, Input, Output
+import uvicorn
+import threading
+import websocket
+import json
+
+app = FastAPI()
+
+# Dictionary to store user approval status
+user_approval_status = {}
+
+# WebSocket event handlers
+def on_message(ws, message):
+    data = json.loads(message)
+    user_ip = data.get('user_ip')
+    is_approved = data.get('is_approved')
+    user_approval_status[user_ip] = is_approved
+
+def on_error(ws, error):
+    print(error)
+
+def on_close(ws):
+    print("### closed ###")
+
+def on_open(ws):
+    def run(*args):
+        while True:
+            # Keep the connection open and ignore stream data
+            pass
+    threading.Thread(target=run).start()
+
+# Function to start WebSocket client
+def start_websocket_client():
+    websocket.enableTrace(True)
+    global ws
+    ws = websocket.WebSocketApp("wss://dacs-websocket-api-endpoint",
+                                on_message=on_message,
+                                on_error=on_error,
+                                on_close=on_close)
+    ws.on_open = on_open
+    ws.run_forever()
+
+# Start WebSocket client in a separate thread
+threading.Thread(target=start_websocket_client).start()
+
+# FastAPI middleware to check user login
+@app.middleware("http")
+async def check_user_login(request: Request, call_next):
+    user_ip = request.client.host
+    if not is_user_approved(user_ip):
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    response = await call_next(request)
+    return response
+
+# Function to check user approval status
+def is_user_approved(user_ip):
+    return user_approval_status.get(user_ip, False)
+
+# Initialize Dash app
+dash_app = Dash(__name__)
+dash_app.layout = html.Div([
+    html.H1('Dash Application'),
+    html.Button('Logoff', id='logoff-button'),
+    html.Div(id='logoff-output')
+])
+
+# Callback to handle logoff button click
+@dash_app.callback(
+    Output('logoff-output', 'children'),
+    Input('logoff-button', 'n_clicks')
+)
+def logoff_user(n_clicks):
+    if n_clicks is not None:
+        # Send close request to DACS WebSocket API
+        ws.close()
+        return "Logged off successfully."
+    return ""
+
+# Mount Dash app to FastAPI
+app.mount("/", WSGIMiddleware(dash_app.server))
+
+if __name__ == '__main__':
+    uvicorn.run(app, host='0.0.0.0', port=8050)
+    
+    
+    
+
+
 from dash import Dash, dcc, html, Input, Output, State
 from dash.dependencies import ClientsideFunction
 from flask import Flask, redirect, url_for
