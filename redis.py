@@ -1,6 +1,56 @@
 
 import dash
 import dash_bootstrap_components as dbc
+from dash import html
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+
+app.layout = dbc.Container([
+    dbc.Navbar(
+        children=[
+            dbc.NavbarBrand("Navbar"),
+            dbc.Nav(
+                [
+                    dbc.NavItem(dbc.NavLink("Home", href="#")),
+                    dbc.NavItem(dbc.NavLink("Page 2", href="#")),
+                    dbc.NavItem(dbc.NavLink("Dropdown", href="#")),
+                ],
+                navbar=True,
+                className="ml-auto",
+            ),
+            dbc.DropdownMenu(
+                children=[
+                    dbc.DropdownMenuItem("Item 1", href="#"),
+                    dbc.DropdownMenuItem("Item 2", href="#"),
+                ],
+                nav=True,
+                in_navbar=True,
+                label="Menu",
+            )
+        ],
+        color="primary",
+        dark=True,
+        className="mb-3"
+    ),
+    html.Div(id='page-content')
+], fluid=True)
+
+@app.callback(
+    dash.dependencies.Output('page-content', 'children'),
+    [dash.dependencies.Input('logout-button', 'n_clicks')]
+)
+def logout(n_clicks):
+    if n_clicks:
+        # Here you can add the logic to handle the logout, e.g., closing a session
+        return html.Div("Logged out")
+    return html.Div("Welcome to the app")
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+import dash
+import dash_bootstrap_components as dbc
 from dash import html, Input, Output
 
 # Initialize Dash app with Bootstrap theme
