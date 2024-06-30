@@ -1,5 +1,43 @@
 
+from dash import Dash, html, dcc, Input, Output, State
+import dash
 
+app = Dash(__name__)
+
+# Sample Dash layout with a button to trigger the confirmation dialog
+app.layout = html.Div([
+    html.H1('Dash Application'),
+    html.Button('Delete Item', id='delete-button'),
+    dcc.ConfirmDialog(
+        id='confirm-dialog',
+        message='Are you sure you want to delete this item?',
+    ),
+    html.Div(id='output')
+])
+
+# Callback to open the confirmation dialog
+@app.callback(
+    Output('confirm-dialog', 'displayed'),
+    Input('delete-button', 'n_clicks'),
+    prevent_initial_call=True
+)
+def display_confirm(n_clicks):
+    return True  # Open the confirmation dialog
+
+# Callback to handle the user's response to the confirmation dialog
+@app.callback(
+    Output('output', 'children'),
+    Input('confirm-dialog', 'submit_n_clicks'),
+    State('confirm-dialog', 'submit_n_clicks_timestamp'),
+    prevent_initial_call=True
+)
+def handle_confirm(submit_n_clicks, submit_n_clicks_timestamp):
+    if submit_n_clicks is not None:
+        return "Item deleted." if submit_n_clicks > 0 else "Deletion cancelled."
+    return ""
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
 
 
 from fastapi import FastAPI, Request, HTTPException
