@@ -1,3 +1,31 @@
+def generate_html_table(data, headers=None):
+    html = '<table border="1">\n'
+    
+    # Add table headers if provided
+    if headers:
+        html += '  <tr>\n'
+        for header in headers:
+            html += f'    <th>{header}</th>\n'
+        html += '  </tr>\n'
+    
+    # Add table rows
+    for row in data:
+        html += '  <tr>\n'
+        for item in row:
+            html += f'    <td>{item}</td>\n'
+        html += '  </tr>\n'
+    
+    html += '</table>'
+    return html
+
+# Example usage
+headers = ["ID", "Name", "Age"]
+html_table = generate_html_table(data, headers)
+print(html_table)
+
+
+
+
 
 import quickfix as fix
 import quickfix44 as fix44
