@@ -1,4 +1,88 @@
 
+import quickfix as fix
+import quickfix44 as fix44
+import time
+
+
+class Application(fix.Application):
+    def onCreate(self, sessionID):
+        print(f"Session created: {sessionID}")
+
+    def onLogon(self, sessionID):
+        print(f"Logon: {sessionID}")
+        self.subscribe_market_data(sessionID)
+
+    def onLogout(self, sessionID):
+        print(f"Logout: {sessionID}")
+
+    def toAdmin(self, message, sessionID):
+        print(f"ToAdmin: {message}")
+
+    def fromAdmin(self, message, sessionID):
+        print(f"FromAdmin: {message}")
+
+    def toApp(self, message, sessionID):
+        print(f"ToApp: {message}")
+
+    def fromApp(self, message, sessionID):
+        print(f"FromApp: {message}")
+        msg_type = fix.MsgType()
+        message.getHeader().getField(msg_type)
+        if msg_type.getValue() == fix.MsgType_MarketDataSnapshotFullRefresh:
+            self.on_market_data(message)
+
+    def subscribe_market_data(self, sessionID):
+        md_request = fix44.MarketDataRequest(
+            fix.MDReqID("1"),
+            fix.SubscriptionRequestType(fix.SubscriptionRequestType_SNAPSHOT),
+            fix.MarketDepth(1)
+        )
+        md_entry_types = fix44.MarketDataRequest.NoMDEntryTypes()
+        md_entry_types.setField(fix.MDEntryType(fix.MDEntryType_BID))
+        md_request.addGroup(md_entry_types)
+        md_entry_types.setField(fix.MDEntryType(fix.MDEntryType_OFFER))
+        md_request.addGroup(md_entry_types)
+        instruments = fix44.MarketDataRequest.NoRelatedSym()
+        instruments.setField(fix.Symbol("instrument_name"))
+        md_request.addGroup(instruments)
+        fix.Session.sendToTarget(md_request, sessionID)
+
+    def on_market_data(self, message):
+        symbol = fix.Symbol()
+        message.getField(symbol)
+        print(f"Market Data for {symbol.getValue()}")
+        no_md_entries = fix.NoMDEntries()
+        message.getField(no_md_entries)
+        for i in range(int(no_md_entries.getValue())):
+            group = fix44.MarketDataSnapshotFullRefresh.NoMDEntries()
+            message.getGroup(i + 1, group)
+            entry_type = fix.MDEntryType()
+            group.getField(entry_type)
+            price = fix.MDEntryPx()
+            group.getField(price)
+            size = fix.MDEntrySize()
+            group.getField(size)
+            print(f"  Type: {entry_type.getValue()}, Price: {price.getValue()}, Size: {size.getValue()}")
+
+
+def main():
+    settings = fix.SessionSettings("quickfix.cfg")
+    application = Application()
+    store_factory = fix.FileStoreFactory(settings)
+    log_factory = fix.FileLogFactory(settings)
+    initiator = fix.SocketInitiator(application, store_factory, settings, log_factory)
+    initiator.start()
+    print("FIX initiator started.")
+    time.sleep(60)  # Keep the connection open for 60 seconds
+    initiator.stop()
+    print("FIX initiator stopped.")
+
+
+if __name__ == "__main__":
+    main()
+
+
+
 import dash
 import dash_bootstrap_components as dbc
 from dash import html
