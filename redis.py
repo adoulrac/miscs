@@ -1,3 +1,65 @@
+
+def generate_html_table(data, headers=None):
+    html = '''
+    <html>
+    <head>
+    <style>
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px;
+            border: none;
+        }
+        th {
+            background-color: transparent;
+        }
+        tr:nth-child(even) {
+            background-color: transparent;
+        }
+        tr:hover {
+            background-color: transparent;
+        }
+    </style>
+    </head>
+    <body>
+    <table>
+    '''
+    
+    # Add table headers if provided
+    if headers:
+        html += '  <tr>\n'
+        for header in headers:
+            html += f'    <th>{header}</th>\n'
+        html += '  </tr>\n'
+    
+    # Add table rows
+    for row in data:
+        html += '  <tr>\n'
+        for item in row:
+            html += f'    <td>{item}</td>\n'
+        html += '  </tr>\n'
+    
+    html += '''
+    </table>
+    </body>
+    </html>
+    '''
+    return html
+
+# Example usage
+headers = ["ID", "Name", "Age"]
+html_table = generate_html_table(data, headers)
+
+# Save to file
+with open("invisible_table.html", "w") as file:
+    file.write(html_table)
+
+print("Invisible HTML table saved to invisible_table.html")
+
+
+
 def generate_html_table(data, headers=None):
     html = '<table border="1">\n'
     
