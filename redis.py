@@ -1,4 +1,82 @@
 
+import requests
+
+class OpenDACSAPI:
+    def __init__(self, base_url):
+        self.base_url = base_url
+        self.session = requests.Session()
+        self.token = None
+
+    def login(self, username, password):
+        login_url = f"{self.base_url}/login"
+        payload = {
+            'username': username,
+            'password': password
+        }
+        response = self.session.post(login_url, json=payload)
+        if response.status_code == 200:
+            self.token = response.json().get('token')
+            self.session.headers.update({'Authorization': f'Bearer {self.token}'})
+            return True
+        else:
+            print(f"Login failed: {response.status_code} - {response.text}")
+            return False
+
+    def check_access(self, service, instrument):
+        if not self.token:
+            print("User not logged in.")
+            return False
+        
+        access_url = f"{self.base_url}/access"
+        payload = {
+            'service': service,
+            'instrument': instrument
+        }
+        response = self.session.post(access_url, json=payload)
+        if response.status_code == 200:
+            access_data = response.json()
+            return access_data.get('service_access', False) and access_data.get('instrument_access', False)
+        else:
+            print(f"Access check failed: {response.status_code} - {response.text}")
+            return False
+
+    def logout(self):
+        if not self.token:
+            print("User not logged in.")
+            return False
+
+        logout_url = f"{self.base_url}/logout"
+        response = self.session.post(logout_url)
+        if response.status_code == 200:
+            self.token = None
+            self.session.headers.pop('Authorization', None)
+            return True
+        else:
+            print(f"Logout failed: {response.status_code} - {response.text}")
+            return False
+
+# Example usage:
+if __name__ == "__main__":
+    base_url = "https://api.opendacs.com"  # Replace with the actual base URL
+    api = OpenDACSAPI(base_url)
+
+    if api.login("your_username", "your_password"):
+        print("Login successful")
+        
+        service = "example_service"
+        instrument = "example_instrument"
+        if api.check_access(service, instrument):
+            print(f"Access granted to service '{service}' and instrument '{instrument}'")
+        else:
+            print(f"Access denied to service '{service}' and instrument '{instrument}'")
+
+        if api.logout():
+            print("Logout successful")
+        else:
+            print("Logout failed")
+    else:
+        print("Login failed")
+
 def generate_html_table(data, headers=None):
     html = '''
     <html>
