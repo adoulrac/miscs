@@ -1,3 +1,23 @@
+
+import time
+from datetime import datetime, timedelta
+
+def sleep_until_next_day():
+    now = datetime.now()
+    # Calculate the next midnight
+    next_midnight = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    # Calculate the number of seconds to sleep
+    time_to_sleep = (next_midnight - now).total_seconds()
+    print(f"Sleeping for {time_to_sleep} seconds until next day")
+    time.sleep(time_to_sleep)
+
+# Example usage
+if __name__ == "__main__":
+    print("Current time:", datetime.now())
+    sleep_until_next_day()
+    print("Woke up at:", datetime.now())
+
+
 Using threads is a common approach, but if you want more control over scheduling and better performance, especially if your tasks are I/O-bound rather than CPU-bound, you might consider using the `concurrent.futures` module with `ThreadPoolExecutor` or `asyncio` for asynchronous execution.
 
 Here's how you can use `concurrent.futures.ThreadPoolExecutor`:
