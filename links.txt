@@ -1,3 +1,87 @@
+Using threads is a common approach, but if you want more control over scheduling and better performance, especially if your tasks are I/O-bound rather than CPU-bound, you might consider using the `concurrent.futures` module with `ThreadPoolExecutor` or `asyncio` for asynchronous execution.
+
+Here's how you can use `concurrent.futures.ThreadPoolExecutor`:
+
+```python
+import concurrent.futures
+import time
+
+def function_1():
+    while True:
+        # Your code for function 1
+        print("Function 1 is running")
+        time.sleep(1)
+
+def function_2():
+    while True:
+        # Your code for function 2
+        print("Function 2 is running")
+        time.sleep(1)
+
+def run_periodically(executor, func):
+    future = executor.submit(func)
+    future.add_done_callback(lambda f: run_periodically(executor, func))
+
+# Create a ThreadPoolExecutor
+with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+    run_periodically(executor, function_1)
+    run_periodically(executor, function_2)
+
+    # Keep the main thread alive to allow periodic execution
+    try:
+        while True:
+            time.sleep(1)
+    except KeyboardInterrupt:
+        print("Stopped by user")
+```
+
+In this example:
+
+1. `run_periodically` submits a function to the executor and re-submits it once it's done, creating a periodic execution loop.
+2. `ThreadPoolExecutor` manages the threads for you and allows better control over the number of concurrent threads.
+
+Alternatively, you can use `asyncio` for asynchronous execution:
+
+```python
+import asyncio
+
+async def function_1():
+    while True:
+        # Your code for function 1
+        print("Function 1 is running")
+        await asyncio.sleep(1)
+
+async def function_2():
+    while True:
+        # Your code for function 2
+        print("Function 2 is running")
+        await asyncio.sleep(1)
+
+async def main():
+    # Schedule the periodic tasks
+    task1 = asyncio.create_task(function_1())
+    task2 = asyncio.create_task(function_2())
+    
+    # Keep the main task alive
+    await asyncio.gather(task1, task2)
+
+# Run the asyncio event loop
+asyncio.run(main())
+```
+
+In this example:
+
+1. `asyncio` runs coroutines (`function_1` and `function_2`) asynchronously.
+2. `asyncio.create_task` schedules the coroutines to run concurrently.
+3. `asyncio.run(main())` starts the asyncio event loop, executing the main coroutine which gathers the periodic tasks.
+
+Using `asyncio` can be more efficient than threading for I/O-bound tasks since it doesn't require as many system resources and can handle a larger number of concurrent tasks.
+
+
+
+
+
+
 ### Functional Specifications Document (FSD)
 
 **Project Title**: Data Feed Detection, Onboarding, and Reconciliation Application
