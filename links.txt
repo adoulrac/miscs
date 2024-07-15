@@ -1,3 +1,46 @@
+def reverse_transform(inverted_dict):
+    # Initialize the output dictionary
+    output_dict = {}
+
+    # Iterate through the outer dictionary of the inverted structure
+    for key3, sub_dict1 in inverted_dict.items():
+        for key1, sub_dict2 in sub_dict1.items():
+            for key2, value in sub_dict2.items():
+                # Ensure key1 is in the outer dictionary of the output
+                if key1 not in output_dict:
+                    output_dict[key1] = {}
+                # Ensure key2 is in the dictionary corresponding to key1
+                if key2 not in output_dict[key1]:
+                    output_dict[key1][key2] = {}
+                # Set the value
+                output_dict[key1][key2][key3] = value
+
+    return output_dict
+
+# Example usage:
+inverted_dict = {
+    'k1': {
+        'A': {'a1': 1, 'a2': 3},
+        'B': {'b2': 7}
+    },
+    'k2': {
+        'A': {'a1': 2},
+        'B': {'b1': 5, 'b2': 8}
+    },
+    'k3': {
+        'A': {'a2': 4},
+        'B': {'b1': 6}
+    }
+}
+
+output_dict = reverse_transform(inverted_dict)
+print(output_dict)
+
+
+
+
+
+
 def inverse_dict(input_dict):
     # Initialize the output dictionary
     output_dict = {}
