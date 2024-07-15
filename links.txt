@@ -1,3 +1,37 @@
+def inverse_dict(input_dict):
+    # Initialize the output dictionary
+    output_dict = {}
+
+    # Iterate through the outer dictionary
+    for key1, sub_dict1 in input_dict.items():
+        for key2, sub_dict2 in sub_dict1.items():
+            for key3, value in sub_dict2.items():
+                # Ensure the key3 is in the outer dictionary of the output
+                if key3 not in output_dict:
+                    output_dict[key3] = {}
+                # Ensure key1 is in the dictionary corresponding to key3
+                if key1 not in output_dict[key3]:
+                    output_dict[key3][key1] = {}
+                # Set the value
+                output_dict[key3][key1][key2] = value
+
+    return output_dict
+
+# Example usage:
+input_dict = {
+    'A': {
+        'a1': {'k1': 1, 'k2': 2},
+        'a2': {'k1': 3, 'k3': 4}
+    },
+    'B': {
+        'b1': {'k2': 5, 'k3': 6},
+        'b2': {'k1': 7, 'k2': 8}
+    }
+}
+
+output_dict = inverse_dict(input_dict)
+print(output_dict)
+
 
 import time
 from datetime import datetime, timedelta
