@@ -1,4 +1,140 @@
 
+Certainly! To handle your nested dictionary structure and efficiently split and combine dictionaries, we need to traverse the nested levels and perform the required operations. Here's how you can achieve this:
+
+### Split Function
+
+The split function will separate data older than one hour from the data within the last hour.
+
+```python
+import datetime
+
+def split_data_dict(data_dict):
+    one_hour_ago = datetime.datetime.now() - datetime.timedelta(hours=1)
+    one_hour_ago_ts = int(one_hour_ago.timestamp() * 1000)  # Assuming timestamps are in milliseconds
+
+    last_hour_data = {}
+    older_data = {}
+
+    for level1_key, level2_dict in data_dict.items():
+        last_hour_data[level1_key] = {}
+        older_data[level1_key] = {}
+
+        for level2_key, level3_dict in level2_dict.items():
+            last_hour_data[level1_key][level2_key] = {}
+            older_data[level1_key][level2_key] = {}
+
+            for timestamp, value in level3_dict.items():
+                if int(timestamp) >= one_hour_ago_ts:
+                    last_hour_data[level1_key][level2_key][timestamp] = value
+                else:
+                    older_data[level1_key][level2_key][timestamp] = value
+
+            # Clean up empty dictionaries
+            if not last_hour_data[level1_key][level2_key]:
+                del last_hour_data[level1_key][level2_key]
+            if not older_data[level1_key][level2_key]:
+                del older_data[level1_key][level2_key]
+
+        # Clean up empty dictionaries
+        if not last_hour_data[level1_key]:
+            del last_hour_data[level1_key]
+        if not older_data[level1_key]:
+            del older_data[level1_key]
+
+    return last_hour_data, older_data
+```
+
+### Combine Function
+
+The combine function will merge the older data and the last hour data back together.
+
+```python
+def combine_data_dict(last_hour_data, older_data):
+    combined_data = older_data.copy()  # Start with older data
+
+    for level1_key, level2_dict in last_hour_data.items():
+        if level1_key not in combined_data:
+            combined_data[level1_key] = {}
+
+        for level2_key, level3_dict in level2_dict.items():
+            if level2_key not in combined_data[level1_key]:
+                combined_data[level1_key][level2_key] = {}
+
+            combined_data[level1_key][level2_key].update(level3_dict)
+
+    return combined_data
+```
+
+### Usage Example
+
+To use these functions, you can follow this pattern in your script:
+
+```python
+import time
+import datetime
+
+# Example nested dictionary structure
+data_dict = {
+    'key1': {
+        'subkey1': {
+            'timestamp1': 'value1',
+            'timestamp2': 'value2'
+        },
+        'subkey2': {
+            'timestamp3': 'value3',
+            'timestamp4': 'value4'
+        }
+    },
+    'key2': {
+        'subkey3': {
+            'timestamp5': 'value5',
+            'timestamp6': 'value6'
+        }
+    }
+}
+
+# Split data into last hour and older
+last_hour_data, older_data = split_data_dict(data_dict)
+
+# ... use last_hour_data and older_data as needed ...
+
+# Combine data back into one dictionary
+combined_data = combine_data_dict(last_hour_data, older_data)
+
+# For continuous update example
+def background_task():
+    while True:
+        global data_dict, older_data
+        last_hour_data, older_data = split_data_dict(data_dict)
+        data_dict.clear()
+        data_dict.update(last_hour_data)
+        time.sleep(3600)
+
+thread = threading.Thread(target=background_task)
+thread.start()
+```
+
+### Explanation
+
+1. **split_data_dict**:
+    - This function traverses the three levels of dictionaries.
+    - It separates the entries based on whether the timestamp is within the last hour or older.
+
+2. **combine_data_dict**:
+    - This function merges the older data with the data from the last hour.
+    - It ensures that all keys are correctly merged without overwriting existing data.
+
+### Performance Considerations
+
+- **Efficiency**: Both functions use efficient dictionary operations (`update`, `copy`) which are generally performant in Python.
+- **Data Traversal**: Traversing the nested dictionary structure is necessary to ensure accurate splitting and combining.
+- **Concurrency**: Running the background task in a separate thread ensures that your main application remains responsive.
+
+This approach ensures that you can efficiently manage and process your nested dictionaries, maintaining high performance even with large datasets.
+
+
+
+
 import requests
 
 class OpenDACSAPI:
