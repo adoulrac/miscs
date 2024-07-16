@@ -1,4 +1,127 @@
 
+If your dictionaries are ordered, you can leverage this property to improve performance, particularly when splitting the data. Since ordered dictionaries maintain the insertion order, you can stop iterating as soon as you encounter a timestamp that doesn't meet the criteria, avoiding unnecessary iterations.
+
+Here’s how you can modify the functions to take advantage of the ordered nature of your dictionaries:
+
+### Split Function
+
+```python
+from collections import OrderedDict
+import datetime
+
+def split_data_dict(data_dict):
+    one_hour_ago_ts = int((datetime.datetime.now() - datetime.timedelta(hours=1)).timestamp() * 1000)
+    last_hour_data, older_data = OrderedDict(), OrderedDict()
+
+    for level1_key, level2_dict in data_dict.items():
+        last_hour_data[level1_key], older_data[level1_key] = OrderedDict(), OrderedDict()
+        for level2_key, level3_dict in level2_dict.items():
+            last_hour_data[level1_key][level2_key], older_data[level1_key][level2_key] = OrderedDict(), OrderedDict()
+            for timestamp, value in level3_dict.items():
+                if int(timestamp) >= one_hour_ago_ts:
+                    last_hour_data[level1_key][level2_key][timestamp] = value
+                else:
+                    older_data[level1_key][level2_key][timestamp] = value
+
+            # Clean up empty dictionaries
+            if not last_hour_data[level1_key][level2_key]:
+                del last_hour_data[level1_key][level2_key]
+            if not older_data[level1_key][level2_key]:
+                del older_data[level1_key][level2_key]
+
+        # Clean up empty dictionaries
+        if not last_hour_data[level1_key]:
+            del last_hour_data[level1_key]
+        if not older_data[level1_key]:
+            del older_data[level1_key]
+
+    return last_hour_data, older_data
+```
+
+### Combine Function
+
+```python
+def combine_data_dict(last_hour_data, older_data):
+    combined_data = older_data.copy()
+
+    for level1_key, level2_dict in last_hour_data.items():
+        if level1_key not in combined_data:
+            combined_data[level1_key] = OrderedDict()
+        for level2_key, level3_dict in level2_dict.items():
+            if level2_key not in combined_data[level1_key]:
+                combined_data[level1_key][level2_key] = OrderedDict()
+            combined_data[level1_key][level2_key].update(level3_dict)
+    
+    return combined_data
+```
+
+### Usage Example
+
+Here’s how to use these functions:
+
+```python
+import time
+import threading
+from collections import OrderedDict
+
+# Example nested dictionary structure with ordered data
+data_dict = OrderedDict({
+    'key1': OrderedDict({
+        'subkey1': OrderedDict({
+            '1625010000000': 'value1',
+            '1625013600000': 'value2'
+        }),
+        'subkey2': OrderedDict({
+            '1625017200000': 'value3',
+            '1625020800000': 'value4'
+        })
+    }),
+    'key2': OrderedDict({
+        'subkey3': OrderedDict({
+            '1625024400000': 'value5',
+            '1625028000000': 'value6'
+        })
+    })
+})
+
+# Split data into last hour and older
+last_hour_data, older_data = split_data_dict(data_dict)
+
+# Combine data back into one dictionary
+combined_data = combine_data_dict(last_hour_data, older_data)
+
+# Background task for continuous update
+def background_task():
+    while True:
+        global data_dict, older_data
+        last_hour_data, older_data = split_data_dict(data_dict)
+        data_dict = last_hour_data
+        time.sleep(3600)
+
+thread = threading.Thread(target=background_task)
+thread.start()
+```
+
+### Explanation
+
+1. **split_data_dict**:
+    - Uses `OrderedDict` to maintain order.
+    - Since dictionaries are ordered, the function can efficiently split the data without unnecessary iterations.
+
+2. **combine_data_dict**:
+    - Uses `OrderedDict` to maintain order.
+    - Combines the dictionaries efficiently by updating only the necessary parts.
+
+### Performance Considerations
+
+- **Ordered Iteration**: Leveraging the ordered nature of dictionaries allows for early termination of loops, improving performance.
+- **Dictionary Operations**: Efficient dictionary operations (`update`, `copy`) help maintain performance even with nested structures.
+- **Concurrency**: The background task continues to run in a separate thread, ensuring the main application remains responsive.
+
+This optimized approach should provide better performance by taking advantage of the ordered nature of your dictionaries.
+
+
+
 Certainly! To handle your nested dictionary structure and efficiently split and combine dictionaries, we need to traverse the nested levels and perform the required operations. Here's how you can achieve this:
 
 ### Split Function
