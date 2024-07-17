@@ -1,4 +1,46 @@
 
+def deep_merge(dict1, dict2):
+    """Recursively merge two dictionaries."""
+    for key in dict2:
+        if key in dict1:
+            if isinstance(dict1[key], dict) and isinstance(dict2[key], dict):
+                deep_merge(dict1[key], dict2[key])
+            else:
+                # If there is a conflict, you can decide which one to keep.
+                # Here we choose the value from dict2, but you can customize as needed.
+                dict1[key] = dict2[key]
+        else:
+            dict1[key] = dict2[key]
+    return dict1
+
+def combine_dicts(dicts):
+    """Combine a list of dict of dict of dict."""
+    combined_dict = {}
+    for d in dicts:
+        deep_merge(combined_dict, d)
+    return combined_dict
+
+# Example usage
+dict1 = {
+    'a': {'b': {'c': 1}},
+    'd': {'e': {'f': 2}}
+}
+
+dict2 = {
+    'a': {'b': {'d': 3}},
+    'd': {'g': {'h': 4}}
+}
+
+dict3 = {
+    'a': {'i': {'j': 5}},
+    'k': {'l': {'m': 6}}
+}
+
+combined = combine_dicts([dict1, dict2, dict3])
+print(combined)
+
+
+
 If your dictionaries are ordered, you can leverage this property to improve performance, particularly when splitting the data. Since ordered dictionaries maintain the insertion order, you can stop iterating as soon as you encounter a timestamp that doesn't meet the criteria, avoiding unnecessary iterations.
 
 Here’s how you can modify the functions to take advantage of the ordered nature of your dictionaries:
