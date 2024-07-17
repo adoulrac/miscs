@@ -1,4 +1,48 @@
 
+import threading
+import time
+
+# Create an event object to signal stopping
+stop_event = threading.Event()
+
+def thread_function(name):
+    try:
+        for i in range(5):
+            if stop_event.is_set():
+                print(f"Thread {name} stopping because stop event is set.")
+                return
+            print(f"Thread {name} running")
+            time.sleep(1)
+        # Simulate thread stopping naturally
+        if name == 1:  # Let's say thread 1 is the one that stops
+            raise Exception("Thread 1 stopped")
+    except Exception as e:
+        print(f"Exception in thread {name}: {e}")
+        stop_event.set()  # Signal the event when an exception occurs
+
+# Create and start the threads
+thread1 = threading.Thread(target=thread_function, args=(1,))
+thread2 = threading.Thread(target=thread_function, args=(2,))
+
+thread1.start()
+thread2.start()
+
+# Monitor the threads in the main thread
+try:
+    while not stop_event.is_set():
+        time.sleep(0.5)
+except KeyboardInterrupt:
+    print("Main thread interrupted")
+finally:
+    print("Main thread stopping")
+    stop_event.set()  # Ensure all threads are notified to stop
+
+thread1.join()
+thread2.join()
+
+print("All threads have stopped.")
+
+
 def deep_merge(dict1, dict2):
     """Recursively merge two dictionaries."""
     for key in dict2:
