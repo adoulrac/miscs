@@ -1,3 +1,9 @@
+SELECT
+    SUBSTR(email, 1, INSTR(email, '.') - 1) AS Firstname,
+    SUBSTR(email, INSTR(email, '.') + 1, INSTR(email, '@') - INSTR(email, '.') - 1) AS Lastname
+FROM
+    your_table;
+
 def reverse_transform(inverted_dict):
     # Initialize the output dictionary
     output_dict = {}
