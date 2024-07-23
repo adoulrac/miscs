@@ -1,3 +1,40 @@
+Sure, I can explain how this process typically works.
+
+### Smartcard Authentication
+
+1. **Smartcard Login**: When you log in to your corporate laptop, you insert your smartcard into a card reader and enter a PIN. The smartcard contains a digital certificate that is used to authenticate you.
+
+2. **Certificate Authentication**: The digital certificate on the smartcard is read by the system and used to authenticate you against the corporate network. This certificate contains your public key, and your private key remains on the card.
+
+### Kerberos Authentication
+
+1. **Initial Authentication Request**: Once your identity is verified through the smartcard, your computer sends an Authentication Service (AS) request to the Kerberos Key Distribution Center (KDC).
+
+2. **Ticket Granting Ticket (TGT)**: The KDC verifies your credentials and issues a Ticket Granting Ticket (TGT), which is encrypted with a key derived from your password (in this case, your smartcard credentials).
+
+3. **Service Ticket Request**: When you try to access an internal website or service, your computer uses the TGT to request a service ticket from the KDC for the specific service.
+
+4. **Service Ticket**: The KDC issues a service ticket, which is encrypted with the service's key.
+
+5. **Service Authentication**: Your computer presents the service ticket to the internal website or service, which decrypts the ticket and verifies your identity.
+
+### Combined Workflow
+
+1. **Smartcard and Kerberos Integration**: Your smartcard login credentials are used to obtain a Kerberos TGT. This TGT is then used to obtain service tickets for accessing internal websites and services without requiring you to re-enter your credentials.
+
+2. **Single Sign-On (SSO)**: The combination of smartcard authentication and Kerberos provides a Single Sign-On (SSO) experience. Once you are logged into your laptop with your smartcard, you can access multiple internal resources without needing to re-authenticate.
+
+### Security Advantages
+
+1. **Strong Authentication**: The use of smartcards provides strong two-factor authentication (something you have - the card, and something you know - the PIN).
+
+2. **Credential Protection**: Smartcards protect your private key and other credentials, making it difficult for attackers to steal them.
+
+3. **Centralized Authentication**: Kerberos allows for centralized management of authentication, making it easier to enforce security policies and manage user access.
+
+This process ensures secure and seamless access to internal resources while minimizing the need for multiple logins.
+
+
 SELECT
     SUBSTR(email, 1, INSTR(email, '.') - 1) AS Firstname,
     SUBSTR(email, INSTR(email, '.') + 1, INSTR(email, '@') - INSTR(email, '.') - 1) AS Lastname
