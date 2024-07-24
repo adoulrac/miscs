@@ -1,3 +1,19 @@
+nested_dict = {
+    'a': {
+        'b1': {'c1': 1, 'c2': 2, 'c3': 3},
+        'b2': {'c4': 4, 'c5': 5, 'c6': 6}
+    },
+    'd': {
+        'e1': {'f1': 7, 'f2': 8, 'f3': 9},
+        'e2': {'f4': 10, 'f5': 11, 'f6': 12}
+    }
+}
+
+nested_dict = {k1: {k2: {k3: v3[next(iter(v3))]} for k2, v3 in v2.items()} for k1, v2 in nested_dict.items()}
+
+print(nested_dict)
+
+
 Sure, I can explain how this process typically works.
 
 ### Smartcard Authentication
