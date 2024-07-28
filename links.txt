@@ -1,3 +1,36 @@
+-- Step 1: Create a sample table
+CREATE TABLE sample_times (
+    id NUMBER PRIMARY KEY,
+    time VARCHAR2(6)
+);
+
+-- Step 2: Insert sample data
+INSERT INTO sample_times (id, time) VALUES (1, '150000'); -- 15:00:00
+INSERT INTO sample_times (id, time) VALUES (2, '160000'); -- 16:00:00
+INSERT INTO sample_times (id, time) VALUES (3, '163000'); -- 16:30:00
+INSERT INTO sample_times (id, time) VALUES (4, '164500'); -- 16:45:00
+
+-- Step 3: Update times by adding 2 hours, but ensure they do not exceed '170000'
+UPDATE sample_times
+SET time = (
+    SELECT TO_CHAR(
+               TRUNC(LEAST((TO_NUMBER(SUBSTR(time, 1, 2)) * 3600 + 
+                            TO_NUMBER(SUBSTR(time, 3, 2)) * 60 + 
+                            TO_NUMBER(SUBSTR(time, 5, 2)) + 7200), 61200) / 3600, 0), 'FM00') ||
+           TO_CHAR(
+               TRUNC(MOD(LEAST((TO_NUMBER(SUBSTR(time, 1, 2)) * 3600 + 
+                                TO_NUMBER(SUBSTR(time, 3, 2)) * 60 + 
+                                TO_NUMBER(SUBSTR(time, 5, 2)) + 7200), 61200), 3600) / 60, 0), 'FM00') ||
+           TO_CHAR(
+               MOD(LEAST((TO_NUMBER(SUBSTR(time, 1, 2)) * 3600 + 
+                          TO_NUMBER(SUBSTR(time, 3, 2)) * 60 + 
+                          TO_NUMBER(SUBSTR(time, 5, 2)) + 7200), 61200), 60), 'FM00')
+    FROM dual
+);
+
+-- Verify the update
+SELECT * FROM sample_times;
+
 nested_dict = {
     'a': {
         'b1': {'c1': 1, 'c2': 2, 'c3': 3},
