@@ -1,3 +1,91 @@
+
+NGINX provides various variables (`$values`) that you can use in your configuration to capture and log different aspects of the request and response. Here are some of the common variables available in NGINX:
+
+### Common NGINX Variables
+
+1. **Client Information:**
+   - `$remote_addr`: Client IP address.
+   - `$remote_port`: Client port.
+   - `$remote_user`: User name supplied with the Basic Authentication.
+
+2. **Request Details:**
+   - `$request`: Full original request line.
+   - `$request_body`: Full request body.
+   - `$request_method`: Request method, e.g., `GET` or `POST`.
+   - `$request_uri`: Full original request URI (with arguments).
+
+3. **Headers:**
+   - `$http_host`: Host name from the request header.
+   - `$http_user_agent`: User-Agent header from the client.
+   - `$http_referer`: Referer header from the client.
+   - `$http_<header>`: Any other HTTP header (replace `<header>` with the header name, e.g., `$http_x_forwarded_for`).
+
+4. **Response Details:**
+   - `$status`: Response status code.
+   - `$body_bytes_sent`: Number of bytes sent in the response body.
+   - `$bytes_sent`: Total number of bytes sent to the client.
+
+5. **Server Information:**
+   - `$server_addr`: Server IP address.
+   - `$server_port`: Server port.
+   - `$server_protocol`: Protocol used, e.g., `HTTP/1.1`.
+
+6. **Connection Information:**
+   - `$connection`: Connection serial number.
+   - `$connection_requests`: Number of requests made through this connection.
+
+7. **Time and Date:**
+   - `$time_local`: Local time in the Common Log Format.
+   - `$msec`: Current time in seconds with milliseconds.
+
+### Customizing Logs with Variables
+
+You can use these variables to customize the log format in your NGINX configuration. For example:
+
+```nginx
+log_format custom '$remote_addr - $remote_user [$time_local] "$request" '
+                  '$status $body_bytes_sent "$http_referer" '
+                  '"$http_user_agent" "$http_x_forwarded_for"';
+```
+
+### Applying Custom Log Format in Ingress
+
+If you want to use these variables in your Ingress annotations to log client IP and other details, you can specify a custom log format:
+
+```yaml
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: example-ingress
+  namespace: your-namespace
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      log_format custom '$remote_addr - $http_x_forwarded_for [$time_local] "$request" '
+                        '$status $body_bytes_sent "$http_referer" '
+                        '"$http_user_agent" "$http_x_forwarded_for"';
+    nginx.ingress.kubernetes.io/access-log-format: |
+      '$remote_addr - $http_x_forwarded_for [$time_local] "$request" '
+      '$status $body_bytes_sent "$http_referer" '
+      '"$http_user_agent" "$http_x_forwarded_for"';
+spec:
+  rules:
+  - host: example.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: example-service
+            port:
+              number: 80
+```
+
+### Summary
+
+NGINX provides a rich set of variables that you can use to capture various details about requests, responses, and client/server information. These variables can be used in log formats and configuration snippets to customize how NGINX handles and logs traffic, helping you get the specific details you need for monitoring and debugging.
+
+
 -- Step 1: Create a sample table
 CREATE TABLE sample_times (
     id NUMBER PRIMARY KEY,
