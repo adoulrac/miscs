@@ -1,3 +1,104 @@
+To use WebSocket in your Dash app with the `dash-extensions` library, you need to replace the interval component and its callback with a WebSocket component that can handle real-time data updates. This way, the data will be pushed to the client as soon as it's available, reducing latency compared to polling with intervals.
+
+Here's a basic example of how to implement this:
+
+### 1. Install Necessary Packages
+Make sure you have the necessary packages installed:
+
+```bash
+pip install dash dash-extensions
+```
+
+### 2. Basic WebSocket Example
+
+```python
+import dash
+from dash import html, dcc, Output, Input
+import dash_extensions as de
+import time
+import threading
+
+# Sample data update function
+def data_generator():
+    while True:
+        # Simulate some real-time data generation
+        yield {"value": time.time()}
+        time.sleep(1)  # Adjust frequency as needed
+
+# Create the Dash app
+app = dash.Dash(__name__)
+
+# Layout with WebSocket component
+app.layout = html.Div([
+    de.WebSocket(id="ws", url="ws://127.0.0.1:8000/ws"),  # Replace with your WebSocket server URL
+    html.Div(id="live-update-text"),
+])
+
+# Callback to update the text with WebSocket data
+@app.callback(
+    Output("live-update-text", "children"),
+    Input("ws", "message")  # Trigger on WebSocket messages
+)
+def update_text(message):
+    data = message["data"]
+    return f"Updated value: {data['value']}"
+
+# Run a background thread to simulate WebSocket server
+def run_ws_server():
+    from flask import Flask, jsonify
+    from flask_sockets import Sockets
+    from gevent import pywsgi
+    from geventwebsocket.handler import WebSocketHandler
+
+    server = Flask(__name__)
+    sockets = Sockets(server)
+
+    @sockets.route('/ws')
+    def ws(ws):
+        generator = data_generator()
+        for data in generator:
+            if not ws.closed:
+                ws.send(jsonify(data).data)
+            else:
+                break
+
+    # Start the WebSocket server
+    server = pywsgi.WSGIServer(("0.0.0.0", 8000), server, handler_class=WebSocketHandler)
+    server.serve_forever()
+
+# Run the WebSocket server in a separate thread
+thread = threading.Thread(target=run_ws_server)
+thread.daemon = True
+thread.start()
+
+# Run the Dash app
+if __name__ == '__main__':
+    app.run_server(debug=True)
+```
+
+### Explanation
+
+1. **WebSocket Component**: `de.WebSocket(id="ws", url="ws://127.0.0.1:8000/ws")`
+   - This component connects to the WebSocket server at the specified URL. Replace the URL with your WebSocket server's URL.
+
+2. **Callback with WebSocket Input**:
+   - The callback is triggered every time a message is received from the WebSocket server (`Input("ws", "message")`).
+   - `message["data"]` contains the data sent by the WebSocket server.
+
+3. **Simulated WebSocket Server**:
+   - For demonstration purposes, a WebSocket server is created using Flask-Sockets and run in a separate thread.
+   - It uses the `data_generator()` function to simulate data updates.
+
+### Customizing for Your Use Case
+
+- **WebSocket Server URL**: Replace `"ws://127.0.0.1:8000/ws"` with your actual WebSocket server URL.
+- **Data Format**: Modify the `data_generator()` and callback function as needed to handle your specific data format.
+
+This approach can reduce latency since it pushes data updates to the client as soon as they're available.
+
+
+
+
 
 NGINX provides various variables (`$values`) that you can use in your configuration to capture and log different aspects of the request and response. Here are some of the common variables available in NGINX:
 
