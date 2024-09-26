@@ -1,4 +1,52 @@
 
+import dash
+from dash import dcc, html
+from dash_extensions import Clipboard
+import dash_table
+import pandas as pd
+
+app = dash.Dash(__name__)
+
+# Sample DataFrame
+df = pd.DataFrame({
+    "Column A": [1, 2, 3],
+    "Column B": [4, 5, 6],
+    "Column C": ["A", "B", "C"]
+})
+
+# Convert DataFrame to HTML table format (for copying)
+df_string = df.to_csv(index=False)
+
+app.layout = html.Div([
+    # Display the DataFrame as a table
+    dash_table.DataTable(
+        id='table',
+        columns=[{"name": i, "id": i} for i in df.columns],
+        data=df.to_dict('records')
+    ),
+
+    # Hidden Textarea for copying the DataFrame as plain text (CSV format)
+    dcc.Textarea(
+        id='table-textarea',
+        value=df_string,
+        style={"display": "none"}  # Hide the textarea
+    ),
+
+    # Copy button
+    html.Button("Copy Table to Clipboard", id="copy-button"),
+
+    # Clipboard component to copy the content of the hidden textarea
+    Clipboard(target_id="table-textarea"),
+])
+
+if __name__ == '__main__':
+    app.run_server(debug=True)
+
+
+
+
+
+
 from celery import Celery
 from datetime import datetime, timedelta
 
