@@ -1,3 +1,64 @@
+
+from celery import Celery
+from datetime import datetime, timedelta
+
+# Initialize Celery
+app = Celery('your_app_name')
+
+def check_workers(worker_names):
+    # Get the current state of workers
+    inspect = app.control.inspect()
+    active_workers = inspect.active()
+
+    for worker in worker_names:
+        print(f"Checking worker: {worker}")
+        
+        # Check if worker is active
+        if worker not in active_workers:
+            print(f"Worker {worker} is down or unresponsive.")
+            continue
+        
+        # Ping the worker
+        ping_response = app.control.ping([worker])
+        if not ping_response or worker not in ping_response[0]:
+            print(f"Worker {worker} did not respond to ping.")
+            continue
+        
+        # Check heartbeat
+        stats = inspect.stats()
+        heartbeat = stats.get(worker, {}).get('heartbeat')
+        if not heartbeat:
+            print(f"Worker {worker} has no heartbeat.")
+            continue
+        
+        # Get current time and convert heartbeat to datetime
+        heartbeat_time = datetime.fromtimestamp(heartbeat)
+        if datetime.now() - heartbeat_time > timedelta(minutes=2):  # Customize threshold if needed
+            print(f"Worker {worker} heartbeat is outdated (last seen at {heartbeat_time}).")
+            continue
+        
+        # Check the last task run time
+        active_tasks = inspect.active([worker])[worker]
+        if active_tasks:
+            last_task_time = max(task['time_start'] for task in active_tasks)
+            if datetime.now() - datetime.fromtimestamp(last_task_time) > timedelta(minutes=10):
+                print(f"Worker {worker} has not run any task for over 10 minutes.")
+            else:
+                print(f"Worker {worker} is healthy.")
+        else:
+            print(f"No active tasks on worker {worker}, but it's healthy.")
+
+
+
+
+
+
+
+
+
+
+
+
 To use WebSocket in your Dash app with the `dash-extensions` library, you need to replace the interval component and its callback with a WebSocket component that can handle real-time data updates. This way, the data will be pushed to the client as soon as it's available, reducing latency compared to polling with intervals.
 
 Here's a basic example of how to implement this:
