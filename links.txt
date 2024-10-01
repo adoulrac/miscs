@@ -1,3 +1,30 @@
+
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: scale-deployment-cronjob
+spec:
+  schedule: "0 10 * * 1-5"  # Every weekday at 10 AM
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: scale-deployment
+            image: bitnami/kubectl:latest  # Lightweight kubectl image
+            command:
+            - /bin/sh
+            - -c
+            - |
+              kubectl scale deployment <your-deployment-name> --replicas=0 -n <your-namespace> && \
+              echo "Waiting for pods to terminate..." && \
+              sleep 10 && \
+              kubectl scale deployment <your-deployment-name> --replicas=1 -n <your-namespace>
+          restartPolicy: OnFailure
+
+
+
+
 import json
 from datetime import datetime
 
