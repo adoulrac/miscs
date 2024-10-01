@@ -1,3 +1,18 @@
+import json
+from datetime import datetime
+
+def transform_json_list(json_list):
+    result = [
+        {
+            'dv01': json.loads(j)['Col0']['0'],
+            'maturity': datetime.fromordinal(json.loads(j)['Col0']['1'])
+        }
+        for j in json_list if j is not None
+    ]
+    return result
+
+
+
 
 import dash
 from dash import dcc, html
