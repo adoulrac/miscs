@@ -1,4 +1,43 @@
 
+import threading
+import time
+import sys
+
+def periodic_function():
+    try:
+        while True:
+            # Your periodic task here
+            print("Running periodic task...")
+            time.sleep(2)  # Simulate periodic work
+            # Raise an exception to simulate failure
+            raise Exception("Something went wrong in the daemon thread!")
+    except Exception as e:
+        print(f"Exception caught in daemon thread: {e}")
+        # Allow the thread to terminate after catching the exception
+
+def main():
+    thread = threading.Thread(target=periodic_function, daemon=True)
+    thread.start()
+
+    try:
+        while thread.is_alive():
+            time.sleep(1)  # Main thread can do other work here
+
+    except KeyboardInterrupt:
+        print("Main program interrupted by user.")
+
+    finally:
+        print("Shutting down the program.")
+        if not thread.is_alive():
+            sys.exit(1)  # Exit the program with an error code
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
 When interviewing a candidate for a Python role, asking questions that test both their understanding of language fundamentals and their ability to solve tricky problems is essential. Here are some challenging and thought-provoking Python interview questions:
 
 1. Mutable Default Arguments
