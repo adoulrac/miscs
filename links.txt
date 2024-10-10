@@ -1,4 +1,75 @@
 
+import functools
+import pickle
+import os
+
+class PersistentLRUCache:
+    def __init__(self, maxsize=128, cache_file='cache.pkl'):
+        self.cache_file = cache_file
+        self.lru_cache = functools.lru_cache(maxsize=maxsize)(self._call_function)
+        self.load_cache()
+
+    def __call__(self, func):
+        self.func = func
+        return self.lru_cache
+
+    def _call_function(self, *args, **kwargs):
+        """Call the actual function with the cached behavior."""
+        return self.func(*args, **kwargs)
+
+    def save_cache(self):
+        """Save the cache to a file."""
+        with open(self.cache_file, 'wb') as f:
+            # Export cache contents (internal cache and corresponding function arguments)
+            cache_data = {
+                'cache': self.lru_cache.cache_info(),
+                'lru_cache': self.lru_cache.cache_clear()  # Save current state
+            }
+            pickle.dump(cache_data, f)
+
+    def load_cache(self):
+        """Load the cache from a file."""
+        if os.path.exists(self.cache_file):
+            with open(self.cache_file, 'rb') as f:
+                cache_data = pickle.load(f)
+                # Restore the cache data into the lru_cache (if possible)
+                self.lru_cache.cache_clear()
+
+    def cache_info(self):
+        """Return cache statistics like hits and misses."""
+        return self.lru_cache.cache_info()
+
+    def clear_cache(self):
+        """Clear the in-memory cache."""
+        self.lru_cache.cache_clear()
+        if os.path.exists(self.cache_file):
+            os.remove(self.cache_file)
+
+
+# Example usage of PersistentLRUCache
+
+@PersistentLRUCache(maxsize=100, cache_file='my_lru_cache.pkl')
+def expensive_function(x):
+    print(f"Calculating for {x}...")
+    return x * x
+
+# Example usage
+print(expensive_function(10))  # First time calculates and caches
+print(expensive_function(10))  # Second time uses the cache
+
+# Save the current cache state to disk
+expensive_function.save_cache()
+
+# Clear the cache (for example, restart of application)
+expensive_function.clear_cache()
+
+# Load the cache back from the file
+expensive_function.load_cache()
+print(expensive_function(10))  # Should load from the previously saved cache
+
+
+
+
 import threading
 import time
 import sys
