@@ -1,4 +1,36 @@
 
+import pandas as pd
+
+def get_updated_rows(df_old: pd.DataFrame, df_new: pd.DataFrame, match_cols: list) -> pd.DataFrame:
+    """
+    Returns rows from df_new where there are differences from df_old based on all columns.
+    Only rows with matching values in the specified match_cols are compared.
+    
+    Parameters:
+    - df_old (pd.DataFrame): The original DataFrame.
+    - df_new (pd.DataFrame): The new DataFrame with potential updates.
+    - match_cols (list): List of columns used to identify matching rows.
+    
+    Returns:
+    - pd.DataFrame: A DataFrame containing rows from df_new that differ from df_old.
+    """
+    
+    # Merge the dataframes on the specified columns to identify updated rows
+    merged_df = df_old.merge(df_new, on=match_cols, suffixes=('_old', '_new'), how='right', indicator=True)
+    
+    # Identify rows with differences in any column other than match_cols
+    updated_rows = merged_df[merged_df['_merge'] == 'right_only']
+    
+    # Filter out columns ending with '_old' and rename columns back to original names
+    updated_df = updated_rows.filter(regex='_new$').rename(columns=lambda x: x.replace('_new', ''))
+    
+    # Reset index for a clean output
+    updated_df.reset_index(drop=True, inplace=True)
+    
+    return updated_df
+
+
+
 import functools
 import pickle
 import os
