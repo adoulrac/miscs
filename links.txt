@@ -1,6 +1,54 @@
 
 import pandas as pd
 
+def get_diff_with_status(df_old: pd.DataFrame, df_new: pd.DataFrame, match_cols: list) -> pd.DataFrame:
+    """
+    Compares two DataFrames and identifies updated, new, and removed rows in a single DataFrame.
+    
+    Parameters:
+    - df_old (pd.DataFrame): The original DataFrame.
+    - df_new (pd.DataFrame): The new DataFrame with potential updates.
+    - match_cols (list): List of columns used to identify matching rows.
+    
+    Returns:
+    - pd.DataFrame: A DataFrame containing rows from both DataFrames with a status column indicating "new", "removed", or "updated".
+    """
+    
+    # Perform a full outer merge to track changes in all rows
+    merged_df = df_old.merge(df_new, on=match_cols, suffixes=('_old', '_new'), how='outer', indicator=True)
+    
+    # Create a status column to describe the type of change
+    merged_df['status'] = 'unchanged'  # Default status
+    
+    # Mark updated rows (rows where match_cols are the same but other columns differ)
+    updated_mask = (merged_df['_merge'] == 'both') & (
+        (merged_df.filter(regex='_old$').values != merged_df.filter(regex='_new$').values).any(axis=1)
+    )
+    merged_df.loc[updated_mask, 'status'] = 'updated'
+    
+    # Mark new rows (present in df_new but not in df_old)
+    merged_df.loc[merged_df['_merge'] == 'right_only', 'status'] = 'new'
+    
+    # Mark removed rows (present in df_old but not in df_new)
+    merged_df.loc[merged_df['_merge'] == 'left_only', 'status'] = 'removed'
+    
+    # Filter out only relevant rows (new, removed, and updated)
+    diff_df = merged_df[merged_df['status'] != 'unchanged']
+    
+    # Keep only columns from the new DataFrame or columns in match_cols
+    diff_df = diff_df.filter(regex='_new$|^' + '|^'.join(match_cols))
+    diff_df.columns = [col.replace('_new', '') for col in diff_df.columns]  # Clean up column names
+    
+    # Reset index for cleaner output
+    diff_df.reset_index(drop=True, inplace=True)
+    
+    return diff_df
+
+
+
+
+import pandas as pd
+
 def get_updated_rows(df_old: pd.DataFrame, df_new: pd.DataFrame, match_cols: list) -> pd.DataFrame:
     """
     Returns rows from df_new where there are differences from df_old based on all columns.
