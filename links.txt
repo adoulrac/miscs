@@ -1,3 +1,51 @@
+
+from dash import Dash, html, dcc
+
+app = Dash(__name__)
+
+app.layout = html.Div(
+    [
+        dcc.Interval(id="interval-component", interval=2000, n_intervals=0),
+        html.Div("Monitoring HTTP response codes...", id="status-text", style={"padding": "20px"}),
+        html.Script(
+            """
+            (function() {
+                const originalFetch = window.fetch;
+
+                // Override the fetch function
+                window.fetch = async function(...args) {
+                    const response = await originalFetch(...args);
+
+                    // Check if it's a Dash callback response
+                    if (args[0].includes('_dash-update-component')) {
+                        const container = document.getElementById('main-container');
+                        const statusText = document.getElementById('status-text');
+
+                        if (response.status >= 200 && response.status < 300) {
+                            // Success
+                            container.style.backgroundColor = "white";
+                            statusText.innerText = "Callback succeeded! HTTP " + response.status;
+                        } else {
+                            // Failure
+                            container.style.backgroundColor = "red";
+                            statusText.innerText = "Callback failed! HTTP " + response.status;
+                        }
+                    }
+                    return response;
+                };
+            })();
+            """
+        ),
+    ],
+    id="main-container",
+    style={"backgroundColor": "white", "height": "100vh"},
+)
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
 To ensure your JSON request to a WebSocket does not contain any invalid or problematic characters, you can follow these steps:
 
 1. Validate the JSON Format
