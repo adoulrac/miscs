@@ -1,4 +1,29 @@
 
+
+Voici le texte mis à jour avec les informations supplémentaires :
+
+Objet : Demande de dérogation pour recruter Tom en tant qu’indépendant
+
+Bonjour [Nom du destinataire],
+
+Je sollicite votre approbation pour recruter Tom, ancien membre de notre équipe, en tant que contracteur indépendant. Après avoir quitté BNP Paribas pour rejoindre Morgan Stanley il y a un an, Tom souhaite revenir pour contribuer à nos projets stratégiques en 2025.
+
+Récemment, nous avons fait face à un turnover important, avec la perte de plusieurs développeurs confirmés et expérimentés, notamment sur nos projets de surveillance. Cette situation a accentué la pression sur notre équipe, surtout en vue de la préparation de l’audit de la Fed en 2025 et des défis urgents à relever sur le projet Verdi. Nous subissons une pression croissante et immédiate, et l’aide de Tom sera cruciale pour surmonter ces défis. En tant que contributeur clé au développement de nos outils de surveillance, il possède une connaissance approfondie de notre environnement technologique, ce qui nous permettra de préparer efficacement ces projets dans un délai très court.
+
+Tom possède également une expertise en infrastructure et en DevOps et pourra contribuer de manière significative à l’expansion de la plateforme Finstrat. Ce projet stratégique pour Global Markets vise à éliminer le Shadow IT, et Tom, basé à Paris, pourra apporter une contribution locale essentielle. De plus, son expérience à Morgan Stanley, où il a géré une plateforme transverse, globale, utilisée par le business et permettant de consommer des données en temps réel, est particulièrement pertinente pour Finstrat. Il pourra mettre en application tout ce qu’il a appris chez Morgan Stanley pour renforcer l’efficacité et l’impact de Finstrat au sein de BNP Paribas.
+
+Tom demande un taux journalier moyen de 750 euros. Bien que ce tarif soit élevé, il est justifié par son expertise approfondie, son expérience directe avec nos outils de surveillance et sa capacité à s’intégrer rapidement dans nos projets stratégiques à fort enjeu.
+
+Je vous remercie de considérer cette demande de dérogation afin de garantir la réussite de nos projets à venir.
+
+Cordialement,
+[Nom]
+[Poste]
+BNP Paribas Global Markets IT
+
+Cette version prend en compte le turnover dans l’équipe, la pression sur le projet Verdi et justifie le tarif de Tom en fonction de son expertise et de ses compétences spécifiques.
+
+
 Voici un modèle de texte que tu peux utiliser pour demander une dérogation à ton management afin de recruter Tom en tant qu’indépendant :
 
 Objet : Demande de dérogation pour recruter Tom en tant qu’indépendant
