@@ -1,4 +1,29 @@
 
+Here is the text translated into English:
+
+Subject: Request for exemption to recruit Tom as an independent contractor
+
+Dear [Recipient’s Name],
+
+I am requesting your approval to recruit Tom, a former member of our team, as an independent contractor. After leaving BNP Paribas to join Morgan Stanley a year ago, Tom would like to return to contribute to our strategic projects in 2025.
+
+Recently, we have experienced significant turnover, losing several confirmed and experienced developers, particularly on our surveillance projects. This situation has intensified the pressure on our team, especially with the upcoming Fed audit in 2025 and the urgent challenges we face on the Verdi project. We are under increasing pressure in the short term, and Tom’s assistance will be crucial in addressing these challenges. As a key contributor to the development of our surveillance tools, he has an in-depth knowledge of our technological environment, which will allow us to prepare for these projects efficiently and in a short timeframe.
+
+Tom also has significant expertise in infrastructure and DevOps, which will greatly contribute to the expansion of the Finstrat platform. This strategic project for Global Markets aims to eliminate Shadow IT, and Tom, based in Paris, will be able to provide essential local support. Additionally, his experience at Morgan Stanley, where he managed a global, transversal platform used by the business to consume real-time data from multiple sources, is highly relevant to Finstrat. He will be able to apply what he learned at Morgan Stanley to strengthen the efficiency and impact of Finstrat within BNP Paribas.
+
+Tom is requesting a daily rate of 750 euros. While this rate is high, it is justified by his extensive expertise, direct experience with our surveillance tools, and his ability to quickly integrate into our strategic, high-stakes projects.
+
+Thank you for considering this request for exemption, which will ensure the success of our upcoming projects.
+
+Best regards,
+[Your Name]
+[Your Position]
+BNP Paribas Global Markets IT
+
+This version includes the key details about turnover, the pressure from the Verdi project, and justifies Tom’s rate based on his expertise and experience.
+
+
+
 
 Voici le texte mis à jour avec les informations supplémentaires :
 
