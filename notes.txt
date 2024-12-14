@@ -1,0 +1,49 @@
+Here’s a draft for your comments on each objective:
+	1.	Respect of code of conduct, rules, and regulations:
+I ensured full compliance with BNP Paribas’ code of conduct and regulations throughout 2024. All my deliverables and interactions were aligned with the bank’s standards, fostering trust and integrity in every initiative I contributed to.
+	2.	Collaborative and inclusive mindset:
+I consistently promoted collaboration and inclusivity in all my interactions. By engaging with diverse teams, respecting different perspectives, and fostering open communication, I contributed to a positive and effective working environment.
+	3.	Take ownership of Finstrat:
+My efforts in 2024 focused on supporting the expansion of Finstrat in the US. I worked closely with stakeholders to integrate the platform effectively, helping eliminate shadow IT and increasing its adoption. This work reinforced BNP Paribas’ commitment to global consistency and innovation.
+	4.	Vergy project:
+As part of the Vergy initiative, I collaborated with cross-functional teams to identify and address record-keeping and surveillance gaps in the global market data warehouse. We developed tools to prevent future gaps, ensuring compliance and readiness for the upcoming Fed audit in 2025.
+	5.	Coach a new VAE, Loic:
+I mentored Loic throughout 2024, introducing him to BNP Paribas’ global markets and the Finstrat platform. This enabled him to contribute meaningfully to the US expansion and accelerated his integration and productivity within the organization.
+	6.	Build better understanding of the front office:
+By interacting with teams such as the Credit Desk, DEC, and Rates in New York, I gained valuable insights into their operations. This understanding not only enhanced my ability to assist these teams but also deepened my knowledge of the front office environment, making me more effective in my role.
+
+
+
+
+Let me know if you’d like adjustments or additional details for any point!
+
+Here’s the revised comment for the Vergy project:
+	4.	Vergy project:
+Throughout 2024, we addressed critical challenges in surveillance pipelines, driven by multiple IG inspections. This included ensuring the integrity of data ingestion into the data warehouse as part of the record-keeping mandate, validating preprocessing to maintain data quality, and verifying enrichment processes to prepare data for surveillance models. We prioritized data exhaustiveness and completeness, ensuring no data loss occurred without justification. Any filtered data was thoroughly analyzed and justified.
+This year provided an opportunity to review our existing frameworks and develop robust tools to monitor and control potential data gaps. While significant progress has been made, there is still work to be done in 2025. This includes reviewing preprocessing workflows and model codes, aligning documentation for consistency, and establishing a certification process to ensure that any updates to one component trigger a review of all related components. This focus on consistency and control will ensure sustainable compliance and readiness for the 2025 Fed audit.
+
+Let me know if there are additional adjustments you’d like!
+
+
+
+Here’s the revised comment for the Finstrat objective:
+	3.	Take ownership of Finstrat:
+In 2024, I played a pivotal role in expanding the Finstrat platform into the United States. I ensured that all components deployed in EMEA were fully operational within the US infrastructure and supported the scaling of the platform to accommodate the growing number of users. Additionally, I actively onboarded new users from diverse global business lines, including global macro, global credit, and global equities.
+My efforts focused on showcasing the advantages of Finstrat in reducing shadow IT and promoting its ability to deliver fully industrialized applications with minimal effort. I worked closely with teams to design efficient and high-performing applications within the Finstrat infrastructure, enabling them to leverage the platform’s capabilities effectively and seamlessly.
+
+Let me know if there are any further details you’d like to add!
+
+
+
+Here’s the revised comment for the coaching objective:
+	5.	Coach a new VAE, Loic:
+In 2024, I actively supported Loic’s integration into BNP Paribas Global Markets IT by helping him discover and utilize the tools necessary to increase his efficiency. I worked closely with him on the Finstrat expansion in the US, where he successfully released a new component of the Finstrat infrastructure into production and assisted US users with onboarding onto the platform.
+Loic demonstrated exceptional commitment in his role, effectively resolving user issues and ensuring smooth onboarding experiences. By the end of the year, he had developed a solid understanding of how Global Markets IT operates, positioning him to contribute meaningfully to our projects and objectives.
+
+Let me know if you’d like further refinements!
+
+
+
+
+
+
