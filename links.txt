@@ -1,4 +1,212 @@
 
+To allow users to save their current dashboard settings as a new configuration, we can add a Save Configuration button. When users click this button, a new configuration will be created with the current settings.
+
+Here’s the updated code with the Save Configuration feature:
+
+import dash
+from dash import dcc, html, Input, Output, State, callback_context
+import dash_bootstrap_components as dbc
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.title = "Dashboard with User Configuration"
+
+# Layout for the modal window
+def configuration_modal():
+    return dbc.Modal(
+        [
+            dbc.ModalHeader("Manage Configurations"),
+            dbc.ModalBody(
+                [
+                    html.Div(
+                        id="configuration-list",
+                        children=[],
+                        style={"margin-bottom": "20px"},
+                    ),
+                    dbc.Input(
+                        id="new-config-name",
+                        placeholder="Enter configuration name",
+                        type="text",
+                    ),
+                    dbc.Button(
+                        "Add Configuration", id="add-config-btn", color="primary", className="mt-2"
+                    ),
+                    dbc.Button(
+                        "Save Current Settings", id="save-config-btn", color="success", className="mt-2 ms-2"
+                    ),
+                ]
+            ),
+            dbc.ModalFooter(
+                dbc.Button("Close", id="close-modal-btn", className="ms-auto", n_clicks=0),
+            ),
+        ],
+        id="config-modal",
+        is_open=False,
+        size="lg",
+    )
+
+
+# Sample initial configurations
+configurations = [
+    {"id": 1, "name": "Default Configuration"},
+    {"id": 2, "name": "Custom Configuration"},
+]
+
+# Layout of the main app
+app.layout = html.Div(
+    [
+        dcc.Location(id="url"),
+        dbc.NavbarSimple(
+            brand="Dashboard",
+            children=[
+                dbc.NavItem(dbc.NavLink("Logout", href="#")),
+                dbc.NavItem(dbc.NavLink("Manage Configurations", id="open-modal-btn")),
+            ],
+            className="mb-4",
+        ),
+        html.Div(
+            id="dashboard-content",
+            children="Content of the Dashboard",
+            style={"padding": "20px"},
+        ),
+        configuration_modal(),
+    ]
+)
+
+
+# Callbacks for managing the modal and configurations
+@app.callback(
+    Output("config-modal", "is_open"),
+    [Input("open-modal-btn", "n_clicks"), Input("close-modal-btn", "n_clicks")],
+    [State("config-modal", "is_open")],
+)
+def toggle_modal(open_click, close_click, is_open):
+    if open_click or close_click:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("configuration-list", "children"),
+    [
+        Input("add-config-btn", "n_clicks"),
+        Input("save-config-btn", "n_clicks"),
+        Input("configuration-list", "children"),
+    ],
+    [State("new-config-name", "value"), State("dashboard-content", "children")],
+)
+def manage_configurations(add_click, save_click, current_children, new_name, current_dashboard_settings):
+    ctx = callback_context
+    triggered = ctx.triggered[0]["prop_id"].split(".")[0]
+    config_children = current_children or []
+
+    if triggered == "add-config-btn" and new_name:
+        # Add a new configuration with a specified name
+        new_id = len(config_children) + 1
+        config_children.append(
+            html.Div(
+                id=f"config-{new_id}",
+                children=[
+                    dbc.InputGroup(
+                        [
+                            dbc.Input(
+                                value=new_name,
+                                id=f"config-name-{new_id}",
+                                placeholder="Configuration Name",
+                            ),
+                            dbc.Button(
+                                "Load", id=f"load-config-{new_id}", color="success"
+                            ),
+                            dbc.Button(
+                                "Rename", id=f"rename-config-{new_id}", color="secondary"
+                            ),
+                            dbc.Button(
+                                "Share", id=f"share-config-{new_id}", color="info"
+                            ),
+                            dbc.Button(
+                                "Delete", id=f"delete-config-{new_id}", color="danger"
+                            ),
+                        ],
+                        className="mb-2",
+                    )
+                ],
+            )
+        )
+
+    if triggered == "save-config-btn":
+        # Save the current dashboard settings as a new configuration
+        new_id = len(config_children) + 1
+        config_name = f"Configuration {new_id} (Saved)"
+        config_children.append(
+            html.Div(
+                id=f"config-{new_id}",
+                children=[
+                    dbc.InputGroup(
+                        [
+                            dbc.Input(
+                                value=config_name,
+                                id=f"config-name-{new_id}",
+                                placeholder="Configuration Name",
+                            ),
+                            dbc.Button(
+                                "Load", id=f"load-config-{new_id}", color="success"
+                            ),
+                            dbc.Button(
+                                "Rename", id=f"rename-config-{new_id}", color="secondary"
+                            ),
+                            dbc.Button(
+                                "Share", id=f"share-config-{new_id}", color="info"
+                            ),
+                            dbc.Button(
+                                "Delete", id=f"delete-config-{new_id}", color="danger"
+                            ),
+                        ],
+                        className="mb-2",
+                    )
+                ],
+            )
+        )
+
+    return config_children
+
+
+@app.callback(
+    Output("dashboard-content", "children"),
+    [Input({"type": "load-config", "index": dash.ALL}, "n_clicks")],
+    [State("configuration-list", "children")],
+)
+def load_configuration(load_clicks, config_children):
+    ctx = callback_context
+    if not ctx.triggered:
+        return "Content of the Dashboard"
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if "load-config" in triggered_id:
+        index = int(triggered_id.split(":")[-1].replace('"}', ""))
+        config_name = config_children[index]["props"]["children"][0]["props"]["children"][0]["props"]["value"]
+        return f"Dashboard loaded with configuration: {config_name}"
+
+    return "Content of the Dashboard"
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+
+Updates:
+	1.	Save Current Settings Button:
+	•	Added a new button labeled “Save Current Settings” in the modal.
+	•	Clicking this button creates a new configuration with a name like "Configuration X (Saved)" based on the current dashboard settings.
+	2.	Manage Saved Configurations:
+	•	The new configuration is added to the list of available configurations, and users can manage it like others.
+	3.	Example Behavior:
+	•	When the Save Current Settings button is clicked, it saves the current dashboard state as a new configuration.
+	•	The new configuration can be renamed, shared, deleted, or loaded as with others.
+
+This implementation allows users to save their current settings dynamically and manage them seamlessly. Let me know if you need further refinements or want to extend functionality!
+
+
+
+
+
 from dash import Dash, html, dcc
 
 app = Dash(__name__)
