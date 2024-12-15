@@ -16,6 +16,217 @@ configurations = [
 # Counter for unique configuration IDs
 config_id_counter = 4
 
+selected_configuration = None
+
+
+def configuration_modal():
+    """Layout for the configuration management modal."""
+    return dbc.Modal(
+        [
+            dbc.ModalHeader(
+                html.Div(
+                    [
+                        html.Span("Manage Configurations", style={"font-weight": "bold"}),
+                        dbc.Button(
+                            html.I(className="fas fa-plus"),
+                            id="add-config-btn",
+                            color="success",
+                            size="sm",
+                            className="ms-auto me-2",
+                            title="Add Configuration",
+                        ),
+                        dbc.Button(
+                            html.I(className="fas fa-file-import"),
+                            id="import-config-btn",
+                            color="primary",
+                            size="sm",
+                            className="me-2",
+                            title="Import Other User Configuration",
+                        ),
+                    ],
+                    style={"display": "flex", "align-items": "center"},
+                )
+            ),
+            dbc.ModalBody(
+                html.Div(id="configuration-list", children=[]),
+                style={"max-height": "400px", "overflow-y": "auto"},
+            ),
+            dbc.ModalFooter(
+                dbc.Button("Load Configuration", id="load-config-btn", color="primary"),
+                dbc.Button("Close", id="close-modal-btn", className="ms-auto"),
+            ),
+        ],
+        id="config-modal",
+        is_open=False,
+        size="md",
+    )
+
+
+app.layout = html.Div(
+    [
+        dcc.Location(id="url"),
+        dbc.NavbarSimple(
+            brand="Dashboard",
+            children=[
+                dbc.NavItem(dbc.NavLink("Logout", href="#")),
+                dbc.NavItem(dbc.NavLink("Manage Configurations", id="open-modal-btn")),
+            ],
+            className="mb-4",
+        ),
+        html.Div(
+            id="dashboard-content",
+            children="Content of the Dashboard",
+            style={"padding": "20px"},
+        ),
+        configuration_modal(),
+    ]
+)
+
+
+@app.callback(
+    Output("config-modal", "is_open"),
+    [Input("open-modal-btn", "n_clicks"), Input("close-modal-btn", "n_clicks")],
+    [State("config-modal", "is_open")],
+)
+def toggle_modal(open_click, close_click, is_open):
+    """Toggle the configuration modal."""
+    if open_click or close_click:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("configuration-list", "children"),
+    [
+        Input("open-modal-btn", "n_clicks"),
+        Input("add-config-btn", "n_clicks"),
+        Input("import-config-btn", "n_clicks"),
+        Input({"type": "default-star", "index": ALL}, "n_clicks"),
+        Input({"type": "remove-config", "index": ALL}, "n_clicks"),
+    ],
+    [State("configuration-list", "children")],
+)
+def update_configuration_list(
+    open_click, add_click, import_click, star_clicks, remove_clicks, current_children
+):
+    """Update the configuration list displayed in the modal."""
+    global configurations, config_id_counter
+
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_children
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    # Handle add configuration
+    if triggered_id == "add-config-btn":
+        new_config = {
+            "id": config_id_counter,
+            "name": f"New Configuration {config_id_counter}",
+            "is_default": False,
+        }
+        configurations.append(new_config)
+        config_id_counter += 1
+
+    # Handle import configuration
+    elif triggered_id == "import-config-btn":
+        imported_config = {
+            "id": config_id_counter,
+            "name": f"Imported Configuration {config_id_counter}",
+            "is_default": False,
+        }
+        configurations.append(imported_config)
+        config_id_counter += 1
+
+    # Handle default star click
+    elif triggered_id.startswith("{\"type\":\"default-star\""):
+        for config in configurations:
+            config["is_default"] = False
+        index = int(ctx.triggered[0]["prop_id"].split(":")[1].split("}")[0])
+        configurations[index]["is_default"] = True
+
+    # Handle remove button click
+    elif triggered_id.startswith("{\"type\":\"remove-config\""):
+        index = int(ctx.triggered[0]["prop_id"].split(":")[1].split("}")[0])
+        configurations = [config for config in configurations if config["id"] != index]
+
+    # Generate the updated configuration list
+    return [
+        html.Div(
+            id=f"config-{config['id']}",
+            children=[
+                dbc.Button(
+                    html.I(
+                        className="fas fa-star"
+                        if config["is_default"]
+                        else "far fa-star"
+                    ),
+                    id={"type": "default-star", "index": i},
+                    color="warning" if config["is_default"] else "secondary",
+                    size="sm",
+                    className="me-2",
+                    title="Set as Default",
+                ),
+                html.Span(config["name"], style={"flex-grow": 1}),
+                dbc.Button(
+                    html.I(className="fas fa-trash"),
+                    id={"type": "remove-config", "index": i},
+                    color="danger",
+                    size="sm",
+                    className="ms-2",
+                    title="Remove Configuration",
+                ),
+            ],
+            style={"display": "flex", "align-items": "center", "margin-bottom": "10px"},
+        )
+        for i, config in enumerate(configurations)
+    ]
+
+
+@app.callback(
+    Output("dashboard-content", "children"),
+    Input("load-config-btn", "n_clicks"),
+    [State("configuration-list", "children")],
+)
+def load_configuration(n_clicks, children):
+    """Load the selected configuration."""
+    global selected_configuration
+    if n_clicks:
+        return f"Loaded Configuration: {selected_configuration or 'None Selected'}"
+    return dash.no_update
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+import dash
+from dash import dcc, html, Input, Output, State, callback_context
+import dash_bootstrap_components as dbc
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.title = "Dashboard with User Configuration"
+
+# Sample configurations for demonstration
+configurations = [
+    {"id": 1, "name": "Default Configuration", "is_default": True},
+    {"id": 2, "name": "Custom Configuration 1", "is_default": False},
+    {"id": 3, "name": "Custom Configuration 2", "is_default": False},
+]
+
+# Counter for unique configuration IDs
+config_id_counter = 4
+
 
 def configuration_modal():
     """Layout for the configuration management modal."""
