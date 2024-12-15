@@ -40,6 +40,135 @@ def open_modal(n_clicks, configurations):
                         style={"flex": "1", "cursor": "pointer"},
                     ),
                     html.I(
+                        className="fa-solid fa-star" if config["is_default"] else "fa-regular fa-star",
+                        id={"type": "set-default", "index": i},
+                        style={"cursor": "pointer", "margin-right": "10px", "color": "gold" if config["is_default"] else "gray"},
+                    ),
+                    html.I(
+                        className="fa-solid fa-trash",
+                        id={"type": "remove-config", "index": i},
+                        style={"cursor": "pointer"},
+                    ),
+                ],
+                className="config-row",
+                style={
+                    "display": "flex",
+                    "align-items": "center",
+                    "justify-content": "space-between",
+                    "padding": "5px 10px",
+                    "border": "1px solid #ddd",
+                    "border-radius": "5px",
+                    "margin-bottom": "5px",
+                },
+            )
+            for i, config in enumerate(configurations)
+        ]
+    )
+
+    modal_content = html.Div(
+        [
+            html.Div(
+                [
+                    html.Button(
+                        html.I(className="fa-solid fa-plus"),
+                        id="add-config-btn",
+                        className="btn btn-success",
+                        title="Add Configuration",
+                        style={"margin-right": "10px"},
+                    ),
+                    html.Div(
+                        [
+                            dcc.Input(
+                                id="user-id-input",
+                                type="text",
+                                placeholder="User ID",
+                                style={"margin-right": "10px"},
+                            ),
+                            dcc.Input(
+                                id="config-name-input",
+                                type="text",
+                                placeholder="Configuration Name",
+                                style={"margin-right": "10px"},
+                            ),
+                            html.Button(
+                                html.I(className="fa-solid fa-download"),
+                                id="import-config-btn",
+                                className="btn btn-info",
+                                title="Import Configuration",
+                            ),
+                        ],
+                        style={"display": "flex", "align-items": "center"},
+                    ),
+                ],
+                style={"display": "flex", "align-items": "center", "margin-bottom": "20px"},
+            ),
+            configuration_list,
+            html.Div(
+                html.Button("Load Configuration", id="load-config-btn", className="btn btn-primary"),
+                style={"text-align": "right", "margin-top": "20px"},
+            ),
+        ],
+        style={
+            "background-color": "white",
+            "padding": "20px",
+            "border-radius": "10px",
+            "max-width": "500px",
+            "margin": "auto",
+            "box-shadow": "0 4px 6px rgba(0, 0, 0, 0.1)",
+        },
+    )
+
+    return {"display": "block"}, modal_content
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
+
+
+
+
+
+from dash import Dash, html, dcc, Input, Output, State
+
+app = Dash(__name__)
+
+app.layout = html.Div(
+    [
+        html.Button("Manage Configurations", id="open-modal-btn", className="btn btn-primary"),
+        dcc.Store(id="selected-config"),
+        dcc.Store(
+            id="configurations",
+            data=[
+                {"name": "Config 1", "is_default": True},
+                {"name": "Config 2", "is_default": False},
+                {"name": "Config 3", "is_default": False},
+            ],
+        ),
+        html.Div(id="modal", style={"display": "none"}),
+    ]
+)
+
+
+@app.callback(
+    Output("modal", "style"),
+    Output("modal", "children"),
+    Input("open-modal-btn", "n_clicks"),
+    State("configurations", "data"),
+)
+def open_modal(n_clicks, configurations):
+    if not n_clicks:
+        return {"display": "none"}, None
+
+    configuration_list = html.Div(
+        [
+            html.Div(
+                [
+                    html.Div(
+                        config["name"],
+                        className="config-name",
+                        style={"flex": "1", "cursor": "pointer"},
+                    ),
+                    html.I(
                         className="bi bi-star-fill" if config["is_default"] else "bi bi-star",
                         id={"type": "set-default", "index": i},
                         style={"cursor": "pointer", "margin-right": "10px", "color": "gold" if config["is_default"] else "gray"},
