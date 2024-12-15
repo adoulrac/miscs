@@ -1,4 +1,163 @@
 
+import dash
+from dash import dcc, html, Input, Output, State, callback_context
+import dash_bootstrap_components as dbc
+
+app = dash.Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])
+app.title = "Dashboard with User Configuration"
+
+# Sample configurations for demonstration
+configurations = [
+    {"id": 1, "name": "Default Configuration", "is_default": True},
+    {"id": 2, "name": "Custom Configuration 1", "is_default": False},
+    {"id": 3, "name": "Custom Configuration 2", "is_default": False},
+]
+
+# Counter for unique configuration IDs
+config_id_counter = 4
+
+
+def configuration_modal():
+    """Layout for the configuration management modal."""
+    return dbc.Modal(
+        [
+            dbc.ModalHeader("Manage Configurations"),
+            dbc.ModalBody(
+                children=[
+                    dbc.Button(
+                        "Add Configuration",
+                        id="add-config-btn",
+                        color="primary",
+                        className="mb-3",
+                    ),
+                    html.Div(id="configuration-list", children=[]),
+                ]
+            ),
+            dbc.ModalFooter(
+                dbc.Button("Close", id="close-modal-btn", className="ms-auto")
+            ),
+        ],
+        id="config-modal",
+        is_open=False,
+        size="lg",
+    )
+
+
+app.layout = html.Div(
+    [
+        dcc.Location(id="url"),
+        dbc.NavbarSimple(
+            brand="Dashboard",
+            children=[
+                dbc.NavItem(dbc.NavLink("Logout", href="#")),
+                dbc.NavItem(dbc.NavLink("Manage Configurations", id="open-modal-btn")),
+            ],
+            className="mb-4",
+        ),
+        html.Div(
+            id="dashboard-content",
+            children="Content of the Dashboard",
+            style={"padding": "20px"},
+        ),
+        configuration_modal(),
+    ]
+)
+
+
+@app.callback(
+    Output("config-modal", "is_open"),
+    [Input("open-modal-btn", "n_clicks"), Input("close-modal-btn", "n_clicks")],
+    [State("config-modal", "is_open")],
+)
+def toggle_modal(open_click, close_click, is_open):
+    """Toggle the configuration modal."""
+    if open_click or close_click:
+        return not is_open
+    return is_open
+
+
+@app.callback(
+    Output("configuration-list", "children"),
+    [
+        Input("open-modal-btn", "n_clicks"),
+        Input({"type": "remove-config", "index": dash.ALL}, "n_clicks"),
+        Input("add-config-btn", "n_clicks"),
+    ],
+    [
+        State("configuration-list", "children"),
+        State("dashboard-content", "children"),  # Current dashboard state
+    ],
+)
+def manage_configurations(open_click, remove_clicks, add_click, current_children, current_settings):
+    """Update the configuration list displayed in the modal."""
+    global configurations, config_id_counter
+
+    ctx = callback_context
+    if not ctx.triggered:
+        return current_children
+
+    triggered_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if "remove-config" in triggered_id:
+        # Remove the specified configuration
+        index = int(triggered_id.split(":")[-1].replace('"}', ""))
+        configurations = [config for config in configurations if config["id"] != index]
+
+    if triggered_id == "add-config-btn":
+        # Add a new configuration with the current settings
+        new_config = {
+            "id": config_id_counter,
+            "name": f"New Configuration {config_id_counter}",
+            "is_default": False,
+        }
+        configurations.append(new_config)
+        config_id_counter += 1
+
+    # Generate the configuration list
+    config_list = []
+    for config in configurations:
+        config_row = html.Div(
+            id=f"config-{config['id']}",
+            children=[
+                html.Span(
+                    "★" if config["is_default"] else "☆",
+                    style={"color": "gold" if config["is_default"] else "gray", "margin-right": "10px"},
+                ),
+                html.Span(config["name"], style={"margin-right": "20px"}),
+                dbc.Button(
+                    "Remove",
+                    id={"type": "remove-config", "index": config["id"]},
+                    color="danger",
+                    size="sm",
+                    className="ms-2",
+                ),
+            ],
+            style={"display": "flex", "align-items": "center", "margin-bottom": "10px"},
+        )
+        config_list.append(config_row)
+
+    return config_list
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 To allow users to save their current dashboard settings as a new configuration, we can add a Save Configuration button. When users click this button, a new configuration will be created with the current settings.
 
 Here’s the updated code with the Save Configuration feature:
