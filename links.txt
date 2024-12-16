@@ -1,4 +1,59 @@
 
+from dash import Dash, html, dcc, Output, Input
+import dash_bootstrap_components as dbc
+
+# Initialize the app
+app = Dash(__name__, external_stylesheets=[dbc.themes.BOOTSTRAP])  # Default Bootstrap theme
+
+# Define light and dark themes
+LIGHT_THEME = dbc.themes.BOOTSTRAP
+DARK_THEME = dbc.themes.DARKLY
+
+# App layout
+app.layout = html.Div([
+    dbc.Navbar(
+        dbc.Container([
+            dbc.NavbarBrand("Theme Switcher Dashboard", className="ms-2"),
+            dcc.Switch(
+                id="theme-switch",
+                label="Dark Mode",
+                value=False,  # Default to light mode
+                style={"margin-left": "auto"},
+            ),
+        ]),
+        color="primary",
+        dark=True,  # Navbar always dark for contrast
+    ),
+    dbc.Container(
+        id="main-content",
+        className="mt-4",
+        children=[
+            html.H1("Hello, Dash!", id="header"),
+            html.P("This is an example of a light/dark theme switcher."),
+        ],
+    )
+])
+
+# Callback to switch themes
+@app.callback(
+    Output("main-content", "style"),
+    Output("header", "className"),
+    Input("theme-switch", "value")
+)
+def switch_theme(dark_mode):
+    if dark_mode:
+        return {"backgroundColor": "#2b2b2b", "color": "#f0f0f0"}, "text-light"
+    return {"backgroundColor": "#ffffff", "color": "#000000"}, "text-dark"
+
+
+if __name__ == "__main__":
+    app.run_server(debug=True)
+
+
+
+
+
+
 import dash
 from dash import dcc, html, Input, Output, State, ctx
 import dash_bootstrap_components as dbc
