@@ -1,4 +1,24 @@
 
+Voici une mise à jour du commentaire global en incluant ses contributions à la mise en place des outils dans le cadre de la surveillance et du projet VERDI :
+
+Commentaire global
+
+Cette année, le collaborateur a joué un rôle crucial dans le succès de plusieurs projets stratégiques, notamment le projet VERDI. Il a su relever des défis complexes, notamment liés à la gestion et à la qualité des données dans un contexte réglementaire exigeant.
+
+Dans le cadre du projet VERDI, il a mis en place un ensemble d’outils innovants pour garantir l’exhaustivité des données dans notre Data Warehouse. Ces outils ont permis :
+	•	De suivre la chaîne complète de surveillance, depuis l’ingestion des données jusqu’à la production des alertes de market abuse.
+	•	De monitorer toutes les étapes intermédiaires par lesquelles passent les données avant leur intégration dans les modèles de surveillance.
+	•	D’assurer un contrôle accru de la qualité et de la traçabilité des données, en réduisant les risques d’anomalies et en facilitant les remédiations rapides.
+
+Ces contributions ont non seulement renforcé la robustesse de nos chaînes de surveillance, mais elles ont également posé les bases pour une gestion plus proactive et transparente des données critiques. Son expertise et son engagement dans ce domaine ont permis à l’équipe de répondre aux attentes des régulateurs tout en instaurant une culture de rigueur et de performance autour de la data governance.
+
+En parallèle, il a su gérer efficacement une équipe face à une forte pression, tout en assurant la formation des collaborateurs sur ces nouveaux outils et processus. Grâce à son leadership, les membres de l’équipe sont désormais mieux préparés pour maintenir et améliorer ces initiatives dans le futur.
+
+En résumé, ce collaborateur s’est distingué cette année par son sens de l’innovation, sa capacité à mener à bien des projets stratégiques sous pression, et son engagement pour l’excellence opérationnelle. Ses contributions, notamment dans le cadre de VERDI, ont été déterminantes pour renforcer la conformité, la qualité des données et la performance globale de nos systèmes de surveillance.
+
+Si vous souhaitez que j’ajoute ou ajuste certains éléments, je peux affiner davantage ce texte.
+
+
 
 Voici une mise à jour de l’évaluation en tenant compte du projet dans le domaine de la trade surveillance :
 
