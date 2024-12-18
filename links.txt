@@ -1,4 +1,41 @@
 
+
+Voici une mise à jour de l’évaluation en tenant compte du projet dans le domaine de la trade surveillance :
+
+Objectifs 2024
+	1.	Assurer la continuité des activités locales en tant que manager :
+	•	Superviser l’équipe à Paris, en assurant la bonne gestion des projets critiques.
+	•	Maintenir une collaboration fluide entre Paris et New York.
+	2.	Piloter le projet stratégique de trade surveillance :
+	•	Revoir et renforcer toutes les chaînes de surveillance et les procédures liées à la data governance.
+	•	S’assurer de l’exhaustivité des données conformément au mandat de record keeping et centraliser les flux pré-trade dans le Data Warehouse (DWH).
+	•	Identifier et remédier aux lacunes dans les flux de données avec une forte pression réglementaire et des délais serrés.
+	3.	Renforcer la qualité et le contrôle des données :
+	•	Mettre en œuvre des initiatives visant à améliorer la qualité des données, leur contrôle et leur traçabilité.
+	•	Garantir que tous les processus de surveillance couvrent l’ensemble des activités critiques de la banque d’investissement.
+	4.	Former et autonomiser l’équipe sur les nouvelles initiatives :
+	•	Former les membres de l’équipe sur les nouvelles procédures et initiatives mises en place.
+	•	Assurer une adoption fluide des nouveaux processus pour garantir leur bon fonctionnement à long terme.
+	5.	Encourager la collaboration et la gestion des talents :
+	•	Maintenir une dynamique d’équipe positive malgré les exigences élevées.
+	•	Soutenir le développement des collaborateurs et partager les meilleures pratiques.
+
+Commentaire global
+
+Cette année a été marquée par des défis complexes et une pression accrue, notamment avec le projet stratégique dans le domaine de la trade surveillance. En tant que manager local, ce collaborateur a joué un rôle central dans la révision des chaînes de surveillance et la mise en conformité avec des exigences réglementaires toujours plus élevées.
+
+Le projet a nécessité une revue complète des processus de surveillance pour garantir l’exhaustivité des données dans notre Data Warehouse, la remédiation des lacunes identifiées dans des délais courts, et la mise en place de nouveaux flux répondant aux besoins de record keeping. Face à la complexité technique et à la pression réglementaire, ce collaborateur a su gérer efficacement les priorités, coordonner les efforts de l’équipe et assurer la livraison des résultats attendus.
+
+Son leadership a également été essentiel dans la formation de l’équipe sur les nouvelles initiatives et leur adoption. Grâce à son implication, les membres de l’équipe sont désormais mieux équipés pour gérer ces nouveaux processus, garantissant une amélioration continue de la qualité et du contrôle des données.
+
+En parallèle, il a maintenu une collaboration étroite avec les équipes à New York, jouant un rôle de relais crucial pour aligner les objectifs locaux et globaux. Malgré la charge de travail importante, il a su maintenir une dynamique positive au sein de l’équipe, favorisant une ambiance de travail collaborative et motivante.
+
+En résumé, ce collaborateur a démontré une résilience remarquable, une capacité à gérer des projets d’envergure sous pression, et un engagement fort envers les objectifs stratégiques de l’entreprise. Son travail a non seulement permis de répondre aux exigences immédiates, mais a également posé les bases d’une amélioration durable des processus de surveillance et de gestion des données.
+
+Je tiens à souligner son rôle clé dans le succès de cette année et à le remercier pour son professionnalisme et son implication dans ce projet stratégique.
+
+Si vous souhaitez ajuster ou détailler davantage certains points, je peux affiner ce texte.
+
 Voici une proposition pour structurer l’évaluation annuelle de ce collaborateur :
 
 Objectifs 2024
