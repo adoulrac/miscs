@@ -1,4 +1,37 @@
 
+Voici une proposition pour structurer l’évaluation annuelle de ce collaborateur :
+
+Objectifs 2024
+	1.	Assurer la continuité des activités locales en tant que manager :
+	•	Prendre en main les responsabilités de management de l’équipe à Paris.
+	•	Superviser les projets critiques en cours, en s’assurant de leur bonne exécution dans les délais impartis.
+	•	Maintenir une bonne communication entre l’équipe locale et les équipes à l’international (notamment à New York).
+	2.	Gérer les projets complexes, notamment réglementaires :
+	•	Piloter les sujets liés au réglementaire, en s’assurant de répondre aux exigences élevées de conformité et de qualité.
+	•	Identifier et résoudre les obstacles, tout en gérant la pression associée à ces projets critiques.
+	3.	Encourager la collaboration et le développement des membres de l’équipe :
+	•	Soutenir le développement professionnel des collaborateurs.
+	•	Maintenir une ambiance de travail positive malgré la charge importante de travail.
+	4.	Faciliter la transition et maintenir une relation forte avec New York :
+	•	Travailler en étroite collaboration avec le manager basé à New York (moi-même) pour garantir l’alignement global des équipes.
+	•	Assurer un relais fluide et une communication efficace sur les projets transversaux.
+
+Commentaire global
+
+Cette année a marqué une transition majeure pour ce collaborateur, qui a assumé de nouvelles responsabilités managériales dans un contexte exigeant et parfois sous pression importante. Devenu le manager local à Paris, il a su s’adapter rapidement à son rôle en développant une organisation rigoureuse et en adoptant une approche proactive face aux nombreux défis.
+
+Le collaborateur a montré une grande résilience face à la pression liée à des projets complexes, notamment ceux concernant des sujets réglementaires stratégiques pour la banque. Il a su gérer les attentes élevées des parties prenantes internes et externes tout en maintenant une qualité irréprochable dans la livraison des projets. Son leadership s’est également distingué par une excellente gestion de son équipe, en réussissant à maintenir une cohésion forte et une dynamique de travail positive, malgré la charge importante.
+
+Sur le plan de la collaboration internationale, il a joué un rôle crucial en servant de relais efficace entre Paris et New York, permettant de garantir la continuité des activités et l’alignement stratégique. Cette capacité à travailler en synergie avec des équipes globales a été un atout majeur pour assurer le bon fonctionnement de nos projets.
+
+En résumé, cette année a été particulièrement exigeante pour ce collaborateur, et il a su relever les défis avec brio. Son leadership, son sens de l’organisation et sa capacité à naviguer dans un environnement complexe et sous pression sont à souligner. Il a démontré qu’il est un pilier essentiel pour la réussite de nos projets et pour le fonctionnement harmonieux des équipes.
+
+Je tiens à le féliciter pour ses performances remarquables cette année et pour son implication continue dans l’amélioration de nos processus et la gestion de nos projets.
+
+Si vous avez des éléments supplémentaires ou des points spécifiques que vous souhaitez approfondir, n’hésitez pas à les préciser, et je pourrai ajuster ce texte en conséquence.
+
+
+
 from dash import Dash, html, dcc, Output, Input
 import dash_bootstrap_components as dbc
 
