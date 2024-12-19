@@ -1,4 +1,33 @@
 
+Objectifs liés à l’année d’Asma :
+	1.	Développement de la plateforme Finstrat :
+	•	Renforcer les capacités de la plateforme pour industrialiser les applications et réduire le Shadow IT.
+	•	Automatiser les processus d’intégration et de déploiement pour une gestion optimisée.
+	2.	Intégration des modèles de machine learning (ML) :
+	•	Incorporer des outils comme Gradio pour faciliter la visualisation des outputs des modèles ML.
+	•	Mettre en œuvre MLflow pour suivre les métriques des modèles ML et en améliorer l’efficacité.
+	3.	Développement et adoption des LLM (Large Language Models) :
+	•	Favoriser l’utilisation des LLM au sein de la plateforme pour l’ensemble de l’entreprise.
+	•	Conduire des initiatives pour intégrer et démocratiser les technologies LLM.
+	4.	Collaboration et leadership :
+	•	Être proactive dans l’identification des besoins des utilisateurs.
+	•	Prendre en charge des initiatives stratégiques pour le développement global de Finstrat.
+
+Résumé de l’année pour Asma (moins de 2000 mots) :
+
+En 2024, Asma a joué un rôle clé dans l’évolution et l’amélioration de la plateforme Finstrat. Elle s’est distinguée par sa proactivité et sa capacité à relever des défis complexes, notamment dans le cadre de l’intégration de nouvelles technologies et de l’optimisation de l’infrastructure.
+
+Asma a contribué à la mission centrale de Finstrat : industrialiser les applications pour les rendre conformes aux standards IT et éliminer le Shadow IT. Elle a mis en œuvre des processus automatisés d’intégration et de déploiement, simplifiant ainsi la gestion des applications et les rendant accessibles à des utilisateurs non techniques.
+
+Un des aspects les plus marquants de son année a été son leadership dans l’adoption et l’intégration des Large Language Models (LLM) au sein de la plateforme. Cette initiative a permis de démocratiser l’utilisation des LLM dans l’entreprise, ouvrant la voie à de nouvelles opportunités d’innovation. Pour accompagner cette transformation, Asma a introduit des outils comme Gradio, qui facilite la visualisation des résultats des modèles de machine learning, et MLflow, un outil essentiel pour l’industrialisation et le suivi des métriques des modèles ML.
+
+Grâce à son expertise et son engagement, Asma a renforcé la capacité de Finstrat à répondre aux besoins des utilisateurs business tout en intégrant des solutions technologiques avancées. Son travail a non seulement permis d’améliorer la plateforme, mais également de renforcer la confiance des utilisateurs dans son potentiel.
+
+En résumé, Asma a marqué 2024 par son impact significatif sur la stratégie technologique de Finstrat et son rôle de leader dans l’intégration des technologies ML et LLM. Ses efforts ont contribué à positionner la plateforme comme un outil essentiel pour l’entreprise.
+
+
+
+
 Cette année, il a assumé avec succès de nouvelles responsabilités en prenant en charge la supervision des équipes localisées à Paris, notamment celles travaillant sur Tata Warehouse et Sonata. En tant que relais local du manager global basé à New York, il a assuré une coordination étroite entre les équipes de Paris et les équipes internationales, garantissant une communication fluide et une exécution alignée des projets stratégiques. Son rôle a été déterminant pour maintenir une continuité opérationnelle efficace et répondre aux attentes globales de l’organisation.
 
 
