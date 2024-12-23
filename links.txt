@@ -1,4 +1,40 @@
 
+Objectifs 2024
+	1.	Maintenir et faire évoluer les infrastructures des projets Global Market Stata Warehouse et Sonata
+	•	Assurer la continuité des opérations et l’évolution des infrastructures existantes.
+	•	Mettre en place des pipelines CI/CD pour automatiser les déploiements et réduire les erreurs manuelles.
+	•	Faciliter l’intégration des applications dans les repositories en suivant les meilleures pratiques DevOps.
+	2.	Contribuer au développement et à l’expansion de la plateforme Finstrat
+	•	Réduire le shadow IT en proposant des solutions transparentes et sécurisées.
+	•	Optimiser le time-to-market pour les applications hébergées sur la plateforme.
+	•	Concevoir des outils permettant une meilleure interaction avec les infrastructures, comme Kubernetes et S3.
+	3.	Mise en place de nouveaux outils pour simplifier et sécuriser les interactions avec les infrastructures
+	•	Développer et déployer Pinapet, un outil sécurisé pour la connexion aux clusters Kubernetes.
+	•	Développer et intégrer Manaio, un outil pour gérer les fichiers sur les buckets S3 de manière intuitive.
+
+Résumé des contributions 2024
+
+Durant les trois premiers trimestres de l’année, cette membre de l’équipe a démontré un haut niveau de professionnalisme et de compétences techniques sur plusieurs projets clés :
+	1.	Projets Global Market Stata Warehouse et Sonata
+Elle a joué un rôle essentiel dans le maintien et l’évolution des infrastructures de ces projets critiques pour l’entreprise. Grâce à la mise en place de pipelines CI/CD, elle a permis d’automatiser les processus de déploiement, réduisant ainsi les délais et les risques d’erreurs humaines. Son travail a également facilité l’intégration des applications dans les repositories, contribuant à un environnement de développement plus structuré et efficace.
+	2.	Contributions à la plateforme Finstrat
+Sur Finstrat, une plateforme stratégique visant à éliminer le shadow IT et à accélérer le time-to-market des applications, elle a contribué de manière significative :
+	•	Pinapet : Elle a conçu et implémenté cet outil permettant une connexion sécurisée aux clusters Kubernetes. Cet outil a non seulement renforcé la sécurité, mais a également simplifié l’accès des utilisateurs, augmentant ainsi leur efficacité.
+	•	Manaio : Elle a développé cet outil pour une gestion optimale des fichiers stockés sur les buckets S3. Grâce à Manaio, les utilisateurs peuvent interagir avec les buckets de manière intuitive, visualiser et gérer leurs fichiers sans complexité technique.
+	3.	Approche proactive et rigoureuse
+Elle a fait preuve d’une grande capacité à identifier les besoins opérationnels et à proposer des solutions adaptées. Ses contributions aux projets et outils ont directement amélioré la productivité des équipes et ont renforcé la fiabilité des infrastructures sur lesquelles repose une grande partie de l’activité.
+
+Conclusion
+
+Son année 2024 a été marquée par des contributions techniques de grande qualité et un engagement notable dans l’amélioration des infrastructures et outils utilisés par l’équipe. Sa maîtrise des outils DevOps, sa capacité à concevoir des solutions innovantes, et son implication sur des projets stratégiques comme Finstrat font d’elle une collaboratrice essentielle.
+
+
+
+
+
+
+
+
 Objectifs liés à l’année d’Asma :
 	1.	Développement de la plateforme Finstrat :
 	•	Renforcer les capacités de la plateforme pour industrialiser les applications et réduire le Shadow IT.
