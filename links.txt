@@ -1,3 +1,35 @@
+
+Here’s an updated version incorporating your team’s additional contributions:
+
+Global Markets Data Warehouse (GMDW): Key Role in Trade Surveillance and Market Abuse Monitoring
+
+Overview
+The Global Markets Data Warehouse is the transversal pre-trade repository of data, serving as the primary data provider for trade surveillance and market abuse monitoring projects.
+
+Key Contributions
+	1.	Data Integration for Market Abuse Applications
+	•	Powers critical surveillance applications such as Sonata 2, Sonata 1, and Smart.
+	•	Provides pre-processed, ready-to-consume data for surveillance engines to detect anomalies and generate alerts.
+	2.	Collaboration with Market Abuse Teams
+	•	Assists in reviewing and validating code to ensure robust and optimized database development.
+	•	Implements strong CI/CD pipelines for efficient and reliable production deployments.
+	•	Shares database expertise, improving the efficiency of market abuse processes.
+	3.	Ensuring Data Quality and Auditability
+	•	Enables full auditability for all market abuse-related data.
+	•	Delivers high-quality, actionable datasets for effective monitoring.
+	4.	Supporting Market Abuse Processes via Gravity
+	•	Operates the Gravity website, offering:
+	•	Data quality monitoring reports.
+	•	Application production support insights.
+	•	Detailed visibility into all stages of the market abuse processes.
+
+Strategic Importance
+As a key component in trade surveillance, GMDW ensures robust and reliable data pipelines while driving collaborative efficiencies and compliance excellence in market abuse monitoring.
+
+This version emphasizes your collaboration and technical contributions to enhance the process.
+
+
+
 Durant les trois premiers trimestres de l’année, cette collaboratrice a apporté une contribution significative à plusieurs projets stratégiques, notamment pour les équipes Global Market Data Warehouse, Sonata et la plateforme Finstrat. Elle a mis en place des pipelines CI/CD pour automatiser les déploiements, améliorant la fiabilité et l’efficacité des infrastructures. Sur Finstrat, elle a intégré Pinniped pour sécuriser les connexions aux clusters Kubernetes et MinIO pour simplifier la gestion des fichiers sur les buckets S3, optimisant ainsi l’expérience utilisateur et la productivité. Elle a également exploré des approches innovantes, notamment en utilisant des LLM pour automatiser les revues de code des applications développées sur Finstrat, contribuant à solidifier et rendre plus robuste la gouvernance de la plateforme. Sa rigueur, son professionnalisme et sa communication fluide ont favorisé une collaboration efficace, lui permettant de répondre aux besoins des projets tout en renforçant leur impact.
 
 
