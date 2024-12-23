@@ -1,4 +1,20 @@
 
+
+Here are a few bullet points describing the RMO (Record Management Office) project:
+	•	Purpose: The RMO project focuses on reconciling global post-trade data from ODIN (centralized post-trade booking system) with pre-trade data from the global market data warehouse to ensure data completeness and compliance with regulatory requirements.
+	•	Key Benefits:
+	•	Gap Detection: Identifies missing or mismatched data between ODIN and the global market data warehouse, helping to detect issues in data feeds or predictions that may affect record-keeping mandates and surveillance projects.
+	•	Regulatory Risk Reduction: By ensuring data completeness, the project mitigates the risk of regulatory non-compliance, especially regarding surveillance and audit requirements.
+	•	Data Monitoring: Monitors the data feeds into both ODIN and the global market data warehouse to ensure their integrity, reducing the risk of gaps or errors.
+	•	Reconciliation with MarketMap: The RMO application reconciles data with MarketMap, which defines all gateways and connections used within BNP Paribas, ensuring that data from all global market data warehouses is accounted for.
+	•	Integration with Gravity: Reports and dashboards related to RMO activities are made available on the Gravity website, providing real-time monitoring and visibility into data gaps, reconciliation statuses, and feed health.
+	•	Users: The RMO project is used by multiple teams, including the RMO team, surveillance team, and other internal teams involved in data governance and regulatory compliance.
+	•	Regulatory Compliance: Helps monitor and maintain compliance with record-keeping mandates, aiding surveillance efforts by ensuring that data is complete and up-to-date across both pre-trade and post-trade datasets.
+
+Let me know if you’d like any modifications or additional details!
+
+
+
 The GM Data Warehouse plays a critical role in the Transaction Reporting for Securities Listed Derivatives project, supporting both pre-trade and post-trade data reporting. The data is processed within an in-house application we developed, which dynamically builds data marts based on eligibility rules that are collaboratively defined with business analysts (BAs). This approach significantly accelerates the time to market for onboarding new regulations and developing new transaction reporting pipelines.
 
 We work closely with the ODIN team, and the reports are built on the Grid application—a web platform where APS and Ops users can view submitted transactions, track hospital transactions requiring fixes or manual intervention, and resubmit transactions. Automation has been incorporated throughout the process to minimize manual effort, ensuring efficiency and reducing operational overhead. Additionally, the entire process is thoroughly audited to ensure compliance and transparency.
