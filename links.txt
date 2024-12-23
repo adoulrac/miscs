@@ -1,4 +1,11 @@
 
+The GM Data Warehouse plays a critical role in the Transaction Reporting for Securities Listed Derivatives project, supporting both pre-trade and post-trade data reporting. The data is processed within an in-house application we developed, which dynamically builds data marts based on eligibility rules that are collaboratively defined with business analysts (BAs). This approach significantly accelerates the time to market for onboarding new regulations and developing new transaction reporting pipelines.
+
+We work closely with the ODIN team, and the reports are built on the Grid application—a web platform where APS and Ops users can view submitted transactions, track hospital transactions requiring fixes or manual intervention, and resubmit transactions. Automation has been incorporated throughout the process to minimize manual effort, ensuring efficiency and reducing operational overhead. Additionally, the entire process is thoroughly audited to ensure compliance and transparency.
+
+
+
+
 Here’s an updated version incorporating your team’s additional contributions:
 
 Global Markets Data Warehouse (GMDW): Key Role in Trade Surveillance and Market Abuse Monitoring
