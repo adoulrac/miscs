@@ -1,3 +1,7 @@
+The GM Data Warehouse played a pivotal role in the development of ASTRA, an application designed for GM Global Market CCCO. Built on Oracle Database and utilizing the APEX low-code environment, ASTRA was created to improve the management of GM CCCO controls by replacing outdated spreadsheet-based systems. This solution was delivered in a short timeframe thanks to our expertise in Oracle, APEX, and databases. ASTRA has been a great success and is now being extended beyond global markets to the group level of the company.
+
+
+
 
 
 Here are a few bullet points describing the RMO (Record Management Office) project:
