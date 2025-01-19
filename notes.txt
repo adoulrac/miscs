@@ -1,1 +1,38 @@
+import concurrent.futures
+import time
 
+# Exemple de fonction à exécuter en parallèle
+def ma_fonction(iteration):
+    print(f"Démarrage de l'itération {iteration}")
+    time.sleep(1)  # Simule une tâche longue
+    print(f"Fin de l'itération {iteration}")
+    return f"Résultat de l'itération {iteration}"
+
+# Fonction pour exécuter des tâches en parallèle
+def executer_en_parallele(nombre_iterations, nombre_threads):
+    # Liste des itérations à traiter
+    iterations = list(range(1, nombre_iterations + 1))
+    resultats = []
+    
+    # Utilisation d'un ThreadPoolExecutor
+    with concurrent.futures.ThreadPoolExecutor(max_workers=nombre_threads) as executor:
+        # Soumission des tâches
+        futures = [executor.submit(ma_fonction, iteration) for iteration in iterations]
+        
+        # Collecte des résultats au fur et à mesure qu'ils sont disponibles
+        for future in concurrent.futures.as_completed(futures):
+            resultats.append(future.result())
+    
+    return resultats
+
+# Paramètres
+nombre_iterations = 10  # Nombre total d'itérations
+nombre_threads = 4      # Nombre de threads parallèles
+
+# Appel de la fonction
+resultats = executer_en_parallele(nombre_iterations, nombre_threads)
+
+# Affichage des résultats
+print("\nRésultats finaux :")
+for resultat in resultats:
+    print(resultat)
