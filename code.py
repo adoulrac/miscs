@@ -1,3 +1,63 @@
+import fnmatch
+
+def extract_related_data_optimized(d: dict, key_to_extract: str, exclude_pattern: str = None) -> dict:
+    """
+    Optimized version of extract_related_data function with exclusion of keys based on patterns.
+    
+    :param d: The dictionary to extract data from
+    :param key_to_extract: The key whose related data should be extracted
+    :param exclude_pattern: The pattern to match keys that should be excluded (default is None)
+    :return: A new dictionary with extracted related data and excluded keys
+    """
+    result = {}
+
+    for key, value in d.items():
+        # Skip keys that match the exclude pattern
+        if exclude_pattern and fnmatch.fnmatch(key, exclude_pattern):
+            continue
+        
+        # Extract the relevant key-value pair
+        if key_to_extract in key:
+            result[key] = value
+
+        # Recursively handle nested dictionaries and lists
+        if isinstance(value, dict):
+            nested_result = extract_related_data_optimized(value, key_to_extract, exclude_pattern)
+            if nested_result:
+                result[key] = nested_result
+
+        elif isinstance(value, list):
+            new_list = []
+            for item in value:
+                if isinstance(item, dict):
+                    new_item = extract_related_data_optimized(item, key_to_extract, exclude_pattern)
+                    if new_item:
+                        new_list.append(new_item)
+                else:
+                    new_list.append(item)
+            if new_list:
+                result[key] = new_list
+        else:
+            result[key] = value
+
+    return result
+
+# Example of use
+data = {
+    "user.name": "Alice",
+    "user.age": 30,
+    "user.city": "Paris",
+    "product.name": "Laptop",
+    "ignore.this": "should be excluded",
+    "user.preferences.color": "blue"
+}
+
+# Extract related data for "user" and exclude any keys that match "ignore.*"
+result = extract_related_data_optimized(data, "user", "ignore.*")
+print(result)
+
+
+
 
 import fnmatch
 
