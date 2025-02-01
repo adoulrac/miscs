@@ -1,3 +1,48 @@
+from collections.abc import Iterable, Mapping
+
+def extract_related_data(data: dict, start_key: str) -> dict:
+    """
+    Extracts a filtered dictionary that maintains the exact input structure.
+    It resolves subdependencies by looking at values and matching keys based on their prefix (before the dot).
+
+    :param data: The input dictionary.
+    :param start_key: The key to start extraction from.
+    :return: A filtered dictionary with all related key-value pairs.
+    """
+    def get_related_keys(value):
+        """Finds all keys where the prefix before the dot matches the given value."""
+        return {k for k in data if k.split('.')[0] == value}
+
+    def resolve_keys(keys_to_process, seen_keys):
+        """Recursively processes keys, adding related keys dynamically."""
+        while keys_to_process:
+            key = keys_to_process.pop()
+            if key in seen_keys:
+                continue
+            seen_keys.add(key)
+
+            if key in data:
+                value = data[key]
+                extracted[key] = value  # Keep the exact structure
+
+                # Check if value references another key prefix
+                if isinstance(value, str):
+                    keys_to_process.update(get_related_keys(value))
+                elif isinstance(value, list):
+                    for item in value:
+                        if isinstance(item, str):
+                            keys_to_process.update(get_related_keys(item))
+
+    if start_key not in data:
+        return {}
+
+    extracted = {}
+    resolve_keys({start_key}, set())
+    return extracted
+
+
+
+
 
 from collections.abc import Iterable, Mapping
 
