@@ -1,3 +1,42 @@
+
+from collections.abc import Iterable, Mapping
+
+def extract_related_dict(data: dict, key: str) -> dict:
+    """
+    Extracts a filtered dictionary that includes only the relevant key and all its related sub-objects.
+    Maintains the original dictionary structure.
+
+    :param data: The input dictionary.
+    :param key: The key to start extraction from.
+    :return: A filtered dictionary containing the key and its related sub-objects.
+    """
+    def collect_keys(value, collected):
+        """Recursively collect all keys that are referenced in the dictionary."""
+        if isinstance(value, str) and value in data and value not in collected:
+            collected.add(value)
+            collect_keys(data[value], collected)
+        elif isinstance(value, list):
+            for item in value:
+                collect_keys(item, collected)
+        elif isinstance(value, dict):
+            for v in value.values():
+                collect_keys(v, collected)
+
+    if key not in data:
+        return {}
+
+    # Step 1: Find all related keys
+    related_keys = {key}
+    collect_keys(data[key], related_keys)
+
+    # Step 2: Filter the original dictionary to keep only related keys
+    filtered_dict = {k: v for k, v in data.items() if k in related_keys}
+
+    return filtered_dict
+
+
+
+
 from pydantic import BaseModel
 from typing import Dict, Any
 import pandas as pd
