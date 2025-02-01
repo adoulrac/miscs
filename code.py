@@ -1,3 +1,89 @@
+
+from collections import deque, defaultdict
+import fnmatch
+
+def extract_related_data(data: dict, start_key: str, exclude_patterns: list = None) -> dict:
+    """
+    Extrait un dictionnaire filtré en conservant la structure d'origine et en récupérant
+    toutes les entrées liées selon un système de préfixes (avant le point '.').
+    
+    Optimisations :
+    - Pré-indexe les clés selon leur préfixe pour accélérer les recherches.
+    - Utilise une deque pour améliorer la gestion des clés à traiter.
+    - Exclut les clés qui correspondent à l'un des modèles de filtre dans la liste.
+
+    :param data: Dictionnaire source.
+    :param start_key: Clé de départ pour l'extraction.
+    :param exclude_patterns: Liste des patterns des clés à exclure (optionnel).
+    :return: Dictionnaire filtré avec toutes les dépendances résolues.
+    """
+    
+    # Étape 1 : Construire un index des clés par préfixe
+    prefix_map = defaultdict(set)
+    for key in data:
+        prefix = key.split('.')[0]
+        prefix_map[prefix].add(key)
+
+    # Étape 2 : Parcourir les clés liées
+    if start_key not in data:
+        return {}
+
+    extracted = {}
+    seen_keys = set()
+    keys_to_process = deque([start_key])
+
+    # Vérifier si la clé correspond à l'un des patterns d'exclusion
+    def is_excluded(key):
+        if exclude_patterns:
+            return any(fnmatch.fnmatch(key, pattern) for pattern in exclude_patterns)
+        return False
+
+    while keys_to_process:
+        key = keys_to_process.popleft()
+        
+        # Vérifier si la clé est exclue selon l'un des patterns
+        if is_excluded(key):
+            continue
+
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        if key in data:
+            value = data[key]
+            extracted[key] = value  # Conserver la structure
+
+            # Si la valeur est une chaîne, vérifier si elle correspond à un préfixe existant
+            if isinstance(value, str) and value in prefix_map:
+                keys_to_process.extend(prefix_map[value])
+
+            # Si la valeur est une liste, traiter chaque élément
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, str) and item in prefix_map:
+                        keys_to_process.extend(prefix_map[item])
+
+    return extracted
+
+# Exemple d'utilisation
+data = {
+    "user.name": "Alice",
+    "user.age": 30,
+    "user.city": "Paris",
+    "product.name": "Laptop",
+    "ignore.this": "should be excluded",
+    "user.preferences.color": "blue",
+    "ignore.other": "should also be excluded"
+}
+
+# Extraction des données liées pour "user" tout en excluant les clés qui correspondent aux modèles
+exclude_patterns = ["ignore.*", "product.*"]
+result = extract_related_data(data, "user", exclude_patterns)
+print(result)
+
+
+
+
 from collections import deque, defaultdict
 import fnmatch
 
