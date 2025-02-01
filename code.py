@@ -1,3 +1,51 @@
+
+import fnmatch
+
+def remove_prefix_and_exclude_keys(d: dict, prefix: str, exclude_pattern: str = None) -> dict:
+    """
+    Remove a prefix from all keys in the dictionary and optionally exclude keys matching a pattern.
+    
+    :param d: The dictionary to process
+    :param prefix: The prefix to remove from the keys
+    :param exclude_pattern: The pattern to match keys that should be excluded (default is None)
+    :return: A new dictionary with modified keys
+    """
+    result = {}
+
+    for key, value in d.items():
+        # Skip keys that match the exclude pattern
+        if exclude_pattern and fnmatch.fnmatch(key, exclude_pattern):
+            continue
+        
+        # Remove the prefix if the key starts with it
+        new_key = key[len(prefix):] if key.startswith(prefix) else key
+        
+        # Recursively process the value if it's a dictionary or list
+        if isinstance(value, dict):
+            result[new_key] = remove_prefix_and_exclude_keys(value, prefix, exclude_pattern)
+        elif isinstance(value, list):
+            result[new_key] = [remove_prefix_and_exclude_keys(v, prefix, exclude_pattern) if isinstance(v, dict) else v for v in value]
+        else:
+            result[new_key] = value
+    
+    return result
+
+# Example of use
+data = {
+    "user.name": "Alice",
+    "user.age": 30,
+    "user.city": "Paris",
+    "product.name": "Laptop",
+    "ignore.this": "should be excluded"
+}
+
+# Remove 'user.' prefix and exclude keys that match 'ignore.*' pattern
+result = remove_prefix_and_exclude_keys(data, "user.", "ignore.*")
+print(result)
+
+
+
+
 from collections import deque, defaultdict
 
 def extract_related_data(data: dict, start_key: str) -> dict:
