@@ -1,3 +1,39 @@
+from pydantic import BaseModel
+from typing import Dict, Any
+import pandas as pd
+
+class MyDataModel(BaseModel):
+    data: Dict[str, Any]  # Accepts a dictionary with any key-value pairs
+
+def extract_prefixed_keys(model: MyDataModel, prefix: str) -> pd.DataFrame:
+    # Extract relevant keys and values
+    filtered_items = {k[len(prefix):]: v for k, v in model.data.items() if k.startswith(prefix)}
+    
+    # Convert to DataFrame
+    df = pd.DataFrame([filtered_items])  # Wrap in list to create single-row DataFrame
+    
+    return df
+
+# Example dictionary
+large_dict = {
+    "price_AAPL": 150,
+    "price_GOOG": 2800,
+    "price_MSFT": 299,
+    "volume_AAPL": 1000,
+    "volume_GOOG": 2000
+}
+
+# Convert to Pydantic model
+model = MyDataModel(data=large_dict)
+
+# Extract DataFrame for "price_" prefix
+df_prices = extract_prefixed_keys(model, "price_")
+print(df_prices)
+
+
+
+
+
 
 import ast
 
