@@ -1,3 +1,57 @@
+from collections import deque, defaultdict
+
+def extract_related_data(data: dict, start_key: str) -> dict:
+    """
+    Extrait un dictionnaire filtré en conservant la structure d'origine et en récupérant
+    toutes les entrées liées selon un système de préfixes (avant le point '.').
+    
+    Optimisations :
+    - Pré-indexe les clés selon leur préfixe pour accélérer les recherches.
+    - Utilise une deque pour améliorer la gestion des clés à traiter.
+
+    :param data: Dictionnaire source.
+    :param start_key: Clé de départ pour l'extraction.
+    :return: Dictionnaire filtré avec toutes les dépendances résolues.
+    """
+
+    # Étape 1 : Construire un index des clés par préfixe
+    prefix_map = defaultdict(set)
+    for key in data:
+        prefix = key.split('.')[0]
+        prefix_map[prefix].add(key)
+
+    # Étape 2 : Parcourir les clés liées
+    if start_key not in data:
+        return {}
+
+    extracted = {}
+    seen_keys = set()
+    keys_to_process = deque([start_key])
+
+    while keys_to_process:
+        key = keys_to_process.popleft()
+        if key in seen_keys:
+            continue
+        seen_keys.add(key)
+
+        if key in data:
+            value = data[key]
+            extracted[key] = value  # Conserver la structure
+
+            # Si la valeur est une chaîne, vérifier si elle correspond à un préfixe existant
+            if isinstance(value, str) and value in prefix_map:
+                keys_to_process.extend(prefix_map[value])
+
+            # Si la valeur est une liste, traiter chaque élément
+            elif isinstance(value, list):
+                for item in value:
+                    if isinstance(item, str) and item in prefix_map:
+                        keys_to_process.extend(prefix_map[item])
+
+    return extracted
+
+
+
 from collections.abc import Iterable, Mapping
 
 def extract_related_data(data: dict, start_key: str) -> dict:
