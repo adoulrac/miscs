@@ -1,3 +1,34 @@
+import pandas as pd
+
+data = {
+    "name": [
+        "deltaFET / open interest", "delta / market space cap", "delta / volume", 
+        "delta / volume 30 days", "delta / VWAP volume", "delta / auction volume", 
+        "delta", "notification", "session buys / volume", "session sales / volume", 
+        "close buys / auction volume", "close sales / auction volume", 
+        "tot buys / open interest", "tot buys / market cap", "session buys / volume 30 days", 
+        "tot sales / open interest", "tot sales / market cap", "session sales / volume 30 days"
+    ],
+    "value": [
+        0.01, 0.01, 0.2, 0.2, 0.2, 0.15, 1_000_000, 0, 0.1, 0.1, 
+        0.1, 0.1, 0.01, 0.01, 0.1, 0.01, 0.01, 0.1
+    ],
+    "text value": [
+        "", "", "", "", "", "", "", "touched.*", "", "", "", "", 
+        "", "", "", "", "", ""
+    ],
+    "financial category MRX": [
+        "", "", "", "", "", "(not in) future.bond index", "", "", "", "", 
+        "", "", "", "", "", "", "", ""
+    ]
+}
+
+df = pd.DataFrame(data)
+print(df)
+
+
+
+
 
 from collections import deque, defaultdict
 import fnmatch
