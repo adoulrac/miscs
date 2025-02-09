@@ -1,3 +1,14 @@
+
+Here are the two threats:
+	1.	Risk of Shadow IT Within Finstrat
+Without strong governance, there’s a risk of shadow IT developing within Finstrat, potentially leading to security and compliance issues.
+	2.	Regulatory Pressure from Upcoming Fed Exam
+With the upcoming Fed exam in May 2025, there is a significant risk to the Verdi project’s readiness. We must ensure that our surveillance tools and processes are fully compliant to avoid potential regulatory issues, especially considering the remediation efforts following the JP Morgan fine.
+
+Let me know if you need further adjustments!
+
+
+
 Here are the opportunities based on your input:
 	1.	Recruiting More Local VAE for the Finstrat Team in the U.S.
 As the Finstrat platform is increasingly adopted, users transitioning from Excel to the platform often need assistance in navigating the development and deployment process. Recruiting more local VAE in the U.S. would help provide the necessary support for users, ensuring smoother onboarding and further reducing shadow IT within the company.
