@@ -1,3 +1,12 @@
+Here are the two approved weaknesses, rephrased as requested:
+	1.	Lack of Deep Functional Expertise
+While the team has strong technical skills, there’s a gap in functional knowledge and business understanding. Enhancing this expertise will allow for better collaboration with business units and more effective solutions aligned with user needs. Even though we work closely with two transversal Business Analysts, having more functional knowledge within the team would improve overall efficiency and delivery.
+	2.	Need for Enhanced Unit and Regression Testing
+Although our applications are generally stable, we recognize the importance of more comprehensive unit and regression testing across all projects. By dedicating more effort to implementing robust testing practices, we can ensure the long-term reliability and minimize the risk of any regression or unexpected incidents.
+
+These now reflect a softer approach while still addressing the need for more focus on testing. Let me know if this works for you!
+
+
 
 Here’s a structured way to present the strengths of your teams:
 
