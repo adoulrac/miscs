@@ -5,6 +5,38 @@ import ast
 # Sample DataFrame with NaN and incorrect values
 data = {
     "id": [1, 2, 3, 4, 5],
+    "dict_column": ['{"key1": "A", "key2": "B"}', '{"key1": "C", "key2": "D"}', None, 'hello', '123'],  # None (NaN), invalid string, number
+    "filter_key": ["key1", "key2", "key1", "key1", "key2"]
+}
+
+df = pd.DataFrame(data)
+
+# Improved extraction logic with error handling
+def safe_extract(row):
+    value = row["dict_column"]
+    key = row["filter_key"]
+    
+    if pd.isna(value):  # Skip NaN
+        return None
+    
+    try:
+        parsed_dict = ast.literal_eval(value) if isinstance(value, str) else value  # Parse only if string
+        return parsed_dict.get(key, None) if isinstance(parsed_dict, dict) else None  # Ensure it's a dict
+    except (ValueError, SyntaxError):  # Catch invalid literals
+        return None
+
+df["filtered_value"] = df.apply(safe_extract, axis=1)
+
+print(df)
+
+
+
+import pandas as pd
+import ast
+
+# Sample DataFrame with NaN and incorrect values
+data = {
+    "id": [1, 2, 3, 4, 5],
     "dict_column": ['{"key1": "A", "key2": "B"}', '{"key1": "C", "key2": "D"}', None, 'hello', '123'],
     "filter_key": ["key1", "key2", "key1", "key1", "key2"]
 }
