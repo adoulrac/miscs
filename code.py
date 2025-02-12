@@ -1,3 +1,30 @@
+
+import pandas as pd
+import ast
+
+# Sample DataFrame with NaN and incorrect values
+data = {
+    "id": [1, 2, 3, 4, 5],
+    "dict_column": ['{"key1": "A", "key2": "B"}', '{"key1": "C", "key2": "D"}', None, 'hello', '123'],
+    "filter_key": ["key1", "key2", "key1", "key1", "key2"]
+}
+
+df = pd.DataFrame(data)
+
+# Compact extraction logic
+df["filtered_value"] = df.apply(
+    lambda row: (d := (ast.literal_eval(row["dict_column"]) if isinstance(row["dict_column"], str) else None)) and d.get(row["filter_key"])
+    if isinstance(d, dict) else None,
+    axis=1
+)
+
+print(df)
+
+
+
+
+
+
 import pandas as pd
 
 data = {
