@@ -1,1 +1,28 @@
+
+import pandas as pd
+
+def reduce_memory_usage(df):
+    """Reduces memory usage of a Pandas DataFrame by changing data types."""
+    start_mem = df.memory_usage().sum() / 1024**2
+    print(f"Memory usage before optimization: {start_mem:.2f} MB")
+
+    for col in df.columns:
+        if pd.api.types.is_integer_dtype(df[col]):
+            df[col] = pd.to_numeric(df[col], downcast='integer')
+        elif pd.api.types.is_float_dtype(df[col]):
+            df[col] = pd.to_numeric(df[col], downcast='float')
+        elif df[col].dtype == 'object':
+            num_unique_values = len(df[col].unique())
+            num_total_values = len(df[col])
+            if num_unique_values / num_total_values < 0.5:
+                df[col] = df[col].astype('category')
+
+    end_mem = df.memory_usage().sum() / 1024**2
+    print(f"Memory usage after optimization: {end_mem:.2f} MB")
+    print(f"Decreased by {(start_mem - end_mem) / start_mem * 100:.2f}%")
+    return df
+
+
+
+
 Any VIE working with me would benefit from my 12 years of experience in JMIT, gaining deep knowledge of BNP Paribas’ Global Markets IT ecosystem, and could be seamlessly relocated to my Paris team at the end of  while making a strong case for replacing him with another VIE to maintain platform stability and operational efficiency. Let me know if you want any refinements before finalizing!
