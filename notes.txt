@@ -1,0 +1,26 @@
+Missions du poste
+En tant que Data Engineer VIE au sein de l’équipe Finstrat, vous contribuerez à l’évolution et au maintien d’une plateforme permettant aux utilisateurs business (traders, sales, analysts) de développer et déployer rapidement des applications conformes aux standards IT de BNP Paribas. Vous aurez trois missions principales : développer de nouvelles intégrations pour enrichir la plateforme, assurer son bon fonctionnement et son support, et accompagner les utilisateurs dans la conception de leurs applications.
+
+Environnement de travail
+Vous rejoindrez l’équipe Finstrat US, composée de trois personnes à New York, qui collabore étroitement avec son équivalent basé à Londres, en charge du périmètre hors US. L’environnement est dynamique, au contact direct des utilisateurs front office, et implique une forte interaction avec d’autres équipes IT et business à l’international.
+
+Perspectives et évolution
+Cette mission vous permettra d’acquérir une double expertise technique et business, en développant des compétences en ingénierie logicielle, gestion d’infrastructures et compréhension des activités de marché. Vous pourrez évoluer vers des rôles en data engineering, architecture IT, ou encore dans des équipes plus proches du trading et de l’analyse quantitative, selon vos aspirations.
+
+
+VIE – Data Engineer – Finstrat Platform
+
+En tant que Data Engineer au sein de l’équipe Finstrat, vous évoluerez dans un environnement dynamique au cœur des activités de marché de BNP Paribas. Finstrat est une plateforme innovante permettant aux utilisateurs business (traders, sales, analysts) de développer et de déployer rapidement des applications tout en garantissant une intégration fluide et conforme aux standards IT de la banque. Ce poste, basé à New York, offre une exposition internationale et transverse, avec des interactions régulières avec des équipes aux États-Unis et à l’international, issues de diverses business lines et spécialisations.
+
+Votre rôle s’articulera autour de trois missions principales :
+	1.	Développement et évolution de la plateforme : Vous participerez activement à l’amélioration continue de Finstrat en développant de nouvelles intégrations et en optimisant ses capacités pour répondre aux besoins croissants des utilisateurs. Cela inclut l’ajout de fonctionnalités garantissant une meilleure résilience, scalabilité et compatibilité avec les infrastructures IT de BNP Paribas.
+	2.	Support et monitoring de la plateforme : Vous serez garant du bon fonctionnement de Finstrat en surveillant ses performances et en assurant une résolution rapide des incidents. Vous mettrez en place des outils de monitoring avancés et collaborerez avec les équipes IT pour garantir une haute disponibilité et une robustesse optimale.
+	3.	Accompagnement et support aux utilisateurs : Vous travaillerez en étroite collaboration avec les utilisateurs du front office (traders, sales, analysts) pour les conseiller sur le développement et l’architecture de leurs applications. Vous les aiderez à exploiter pleinement les capacités de la plateforme afin qu’ils puissent transformer leurs outils locaux (Excel, scripts, applications internes) en solutions intégrées et industrialisées.
+
+Enjeux et challenges du poste
+	•	Exposition aux métiers de marché : Comprendre les besoins et les contraintes des utilisateurs pour proposer des solutions adaptées.
+	•	Impact direct sur l’efficacité opérationnelle : Contribuer à la migration des outils non conformes vers des applications robustes et sécurisées.
+	•	Évolution technologique continue : Implémenter de nouvelles fonctionnalités et assurer l’adaptation de la plateforme aux évolutions des systèmes IT de BNP Paribas.
+	•	Collaboration transverse : Travailler avec des équipes variées (IT, trading, quant, compliance) aux États-Unis et en Europe.
+
+Ce poste représente une opportunité unique d’évoluer dans un environnement technique stimulant, au plus proche des activités de marché, tout en développant une expertise en ingénierie logicielle, data et infrastructure.
