@@ -1,4 +1,126 @@
 
+from celery import Celery
+
+# Celery configuration
+BROKER_URL = "redis://localhost:6379/0"  # Change if using another broker
+app = Celery("monitor", broker=BROKER_URL)
+
+# Queue name of your worker
+QUEUE_NAME = "my_queue"  # Change this to match your worker's queue name
+
+def get_failed_tasks():
+    """
+    Get failed tasks from Celery and print them.
+    """
+    inspect = app.control.inspect()
+    failed_tasks = inspect.failed()
+
+    if not failed_tasks:
+        print("✅ No failed tasks found.")
+        return
+
+    for worker, tasks in failed_tasks.items():
+        if QUEUE_NAME in worker:  # Check if worker is handling the specified queue
+            for task_id, task_info in tasks.items():
+                print(f"⚠️ Failed Task on {worker}: Task ID {task_id}, Exception: {task_info['exception']}")
+
+if __name__ == "__main__":
+    get_failed_tasks()
+
+
+
+
+
+
+
+
+
+
+
+
+from kubernetes import client, config
+import re
+
+# Muatkan konfigurasi Kubernetes (gunakan in-cluster jika berjalan dalam pod)
+try:
+    config.load_incluster_config()  # Jika berjalan dalam Kubernetes
+except config.ConfigException:
+    config.load_kube_config()  # Jika berjalan di luar Kubernetes (guna kubeconfig)
+
+# Buat API client
+v1 = client.CoreV1Api()
+
+def get_pod_logs(namespace, deployment_name):
+    """
+    Dapatkan log daripada pod dalam deployment tertentu.
+    """
+    try:
+        # Senaraikan semua pod dalam namespace yang diberikan
+        pods = v1.list_namespaced_pod(namespace)
+
+        for pod in pods.items:
+            # Semak sama ada nama pod mengandungi nama deployment
+            if deployment_name in pod.metadata.name:
+                print(f"Fetching logs for pod: {pod.metadata.name}")
+
+                # Ambil log daripada pod
+                logs = v1.read_namespaced_pod_log(name=pod.metadata.name, namespace=namespace)
+                return logs
+
+    except Exception as e:
+        print(f"Error retrieving logs: {e}")
+
+    return None  # Tiada pod yang sepadan
+
+def check_errors_in_logs(logs):
+    """
+    Periksa jika terdapat ralat dalam log pod.
+    """
+    error_patterns = [
+        r"error", r"exception", r"failed", r"traceback"
+    ]
+    
+    for line in logs.split("\n"):
+        if any(re.search(pattern, line, re.IGNORECASE) for pattern in error_patterns):
+            print(f"Error detected: {line}")
+            return True
+
+    return False
+
+def main():
+    """
+    Fungsi utama untuk mendapatkan log dan mengesan sebarang ralat.
+    """
+    namespace = "your-namespace"  # Gantikan dengan namespace anda
+    deployment_name = "your-deployment"  # Gantikan dengan nama deployment anda
+
+    logs = get_pod_logs(namespace, deployment_name)
+
+    if logs:
+        if check_errors_in_logs(logs):
+            print("Errors detected in logs!")
+        else:
+            print("No errors found.")
+    else:
+        print("No logs retrieved.")
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 import pandas as pd
 import ast
