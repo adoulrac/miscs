@@ -6,6 +6,174 @@ import plotly.express as px
 import datetime
 import json
 import os
+import time
+
+# --------------- Configuration ---------------
+API_BASE_URL = "https://your-api-endpoint.com"  # Replace with your API URL
+THRESHOLDS_FILE = "pipeline_thresholds.json"
+REFRESH_INTERVAL = 15  # Auto-refresh every 15 seconds
+
+# --------------- Helper Functions ---------------
+def fetch_pipelines():
+    """Fetch pipeline data from the API."""
+    try:
+        response = requests.get(f"{API_BASE_URL}/pipelines")
+        return response.json()
+    except Exception:
+        return []
+
+def fetch_pipeline_errors():
+    """Fetch errors occurring in the last 5 minutes."""
+    try:
+        response = requests.get(f"{API_BASE_URL}/errors?last_seconds=300")  # Last 5 min
+        return response.json()
+    except Exception:
+        return []
+
+def load_thresholds():
+    """Load custom thresholds from a JSON file."""
+    if os.path.exists(THRESHOLDS_FILE):
+        with open(THRESHOLDS_FILE, "r") as f:
+            return json.load(f)
+    return {}
+
+def save_thresholds(thresholds):
+    """Save custom thresholds to a JSON file."""
+    with open(THRESHOLDS_FILE, "w") as f:
+        json.dump(thresholds, f, indent=4)
+
+def get_thresholds(pipeline_name):
+    """Get warning & critical thresholds for a pipeline."""
+    return thresholds.get(pipeline_name, {"warning": 5, "critical": 10})
+
+# --------------- Load Data ---------------
+st.set_page_config(page_title="Pipeline Monitoring", layout="wide")
+
+# Auto-refresh every 15 seconds
+st.experimental_set_query_params(auto_refresh=int(time.time()))  
+time.sleep(REFRESH_INTERVAL)  
+st.experimental_rerun()  
+
+# Load pipeline thresholds
+thresholds = load_thresholds()
+
+# Fetch pipeline data
+pipelines = fetch_pipelines()
+df = pd.DataFrame(pipelines)
+
+# Convert data types
+df["last_refresh"] = pd.to_datetime(df["last_refresh"])
+df["latency"] = df["latency"].astype(float)
+df["errors"] = df["errors"].astype(int)
+
+# --------------- TABS FOR DASHBOARD & SETTINGS ---------------
+tab1, tab2 = st.tabs(["📊 Dashboard", "⚙️ Settings"])
+
+# ======================= 📊 MAIN DASHBOARD =======================
+with tab1:
+    st.title("🚀 Pipeline Monitoring Dashboard")
+    st.write(f"Last Updated: {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+
+    # **KPI Metrics**
+    total_pipelines = len(df)
+    failed_pipelines = df["errors"].sum()
+    high_latency_pipelines = len(df[df["latency"] > df["latency"].map(lambda x: get_thresholds(x)['critical'])])
+    average_latency = df["latency"].mean()
+
+    col1, col2, col3, col4 = st.columns(4)
+    col1.metric("Total Pipelines", total_pipelines)
+    col2.metric("❌ Total Errors", failed_pipelines)
+    col3.metric("⚠️ High Latency Pipelines", high_latency_pipelines)
+    col4.metric("⏳ Average Latency (s)", f"{average_latency:.2f}")
+
+    # **Live Status Cards**
+    st.subheader("🔍 Live Pipeline Status")
+    cols = st.columns(5)
+    for i, row in df.iterrows():
+        pipeline_name = row["name"]
+        thresholds_for_pipeline = get_thresholds(pipeline_name)
+        color = "red" if row["errors"] > 0 else "green"
+        error_alert = "❌" if row["errors"] > 0 else "✅"
+
+        with cols[i % 5]:
+            if row["errors"] > 0:
+                if st.button(f"{error_alert} {pipeline_name} ({row['errors']} Errors)", key=f"error_{pipeline_name}"):
+                    errors = fetch_pipeline_errors()
+                    df_errors = pd.DataFrame(errors)
+                    df_errors = df_errors[df_errors["pipeline"] == pipeline_name]
+                    st.write(f"**Error Logs for {pipeline_name}**")
+                    st.dataframe(df_errors)
+            else:
+                st.markdown(
+                    f"""
+                    <div style="border: 2px solid {color}; padding: 10px; border-radius: 10px;">
+                        <h4>{pipeline_name}</h4>
+                        <p>🕒 Last Refresh: {row['last_refresh']}</p>
+                        <p>⚡ Latency: {row['latency']}s</p>
+                        <p>✅ No Errors</p>
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+    # **Latency Trends**
+    st.subheader("📈 Latency Trends Over Time")
+    fig = px.line(df, x="last_refresh", y="latency", color="name", title="Latency Trends")
+    st.plotly_chart(fig, use_container_width=True)
+
+    # **Latency Heatmap**
+    st.subheader("🔥 Latency Heatmap")
+    df_heatmap = df.pivot(index="last_refresh", columns="name", values="latency")
+    fig_heatmap = px.imshow(df_heatmap, labels={"color": "Latency (s)"}, title="Latency Heatmap")
+    st.plotly_chart(fig_heatmap, use_container_width=True)
+
+# ======================= ⚙️ SETTINGS PAGE =======================
+with tab2:
+    st.title("⚙️ Configure Pipeline Thresholds")
+    st.write("Adjust the warning and critical latency thresholds for each pipeline.")
+
+    for pipeline_name in df["name"].unique():
+        st.subheader(f"🔧 {pipeline_name}")
+
+        current_thresholds = get_thresholds(pipeline_name)
+
+        new_warning = st.slider(
+            f"⚠️ Warning Threshold for {pipeline_name}",
+            min_value=1, max_value=20,
+            value=current_thresholds["warning"],
+            key=f"{pipeline_name}_warning"
+        )
+        new_critical = st.slider(
+            f"🚨 Critical Threshold for {pipeline_name}",
+            min_value=5, max_value=50,
+            value=current_thresholds["critical"],
+            key=f"{pipeline_name}_critical"
+        )
+
+        thresholds[pipeline_name] = {"warning": new_warning, "critical": new_critical}
+
+    if st.button("💾 Save Thresholds"):
+        save_thresholds(thresholds)
+        st.success("Thresholds saved successfully! Refresh the dashboard to apply changes.")
+
+
+
+
+
+
+
+
+
+
+
+
+import streamlit as st
+import pandas as pd
+import requests
+import plotly.express as px
+import datetime
+import json
+import os
 
 # --------------- Configuration ---------------
 API_BASE_URL = "https://your-api-endpoint.com"  # Replace with your API URL
