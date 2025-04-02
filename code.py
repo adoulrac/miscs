@@ -1,4 +1,44 @@
 
+import redis
+import time
+from datetime import datetime
+
+def get_latest_timestamps(stream_names, redis_host="localhost", redis_port=6379):
+    """
+    Fetches the latest event timestamp from a list of Redis streams and returns them as datetime objects.
+
+    :param stream_names: List of Redis stream names
+    :param redis_host: Redis server host (default: "localhost")
+    :param redis_port: Redis server port (default: 6379)
+    :return: Dictionary with stream names as keys and (latest event datetime, current datetime)
+    """
+    r = redis.Redis(host=redis_host, port=redis_port, decode_responses=True)
+    current_timestamp = int(time.time() * 1000)  # Current timestamp in milliseconds
+    current_datetime = datetime.utcfromtimestamp(current_timestamp / 1000)  # Convert to UTC datetime
+
+    result = {}
+    for stream in stream_names:
+        stream_info = r.xinfo_stream(stream, full=False)
+        last_entry_id = stream_info.get("last-entry", None)
+
+        if last_entry_id:
+            latest_event_timestamp = int(last_entry_id.split('-')[0])  # Extract milliseconds part
+            latest_event_datetime = datetime.utcfromtimestamp(latest_event_timestamp / 1000)  # Convert to UTC datetime
+        else:
+            latest_event_datetime = None  # No events in stream
+
+        result[stream] = {
+            "latest_event_datetime": latest_event_datetime,
+            "current_datetime": current_datetime
+        }
+
+    return result
+
+
+
+
+
+
 import streamlit as st
 import pandas as pd
 import requests
