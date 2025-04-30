@@ -1,4 +1,22 @@
 
+
+import time
+from kombu.exceptions import OperationalError
+from tasks import app
+
+def safe_add_consumer(queue_name, retries=5, base_delay=1):
+    for attempt in range(retries):
+        try:
+            app.control.add_consumer(queue_name)
+            print(f"Successfully added queue: {queue_name}")
+            return
+        except OperationalError as e:
+            wait = base_delay * (2 ** attempt)
+            print(f"Attempt {attempt+1}: Redis error: {e} — retrying in {wait}s")
+            time.sleep(wait)
+    raise RuntimeError(f"Failed to add consumer after {retries} retries.")
+
+
 import redis
 import time
 from datetime import datetime
