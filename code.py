@@ -1,4 +1,24 @@
 
+import panel as pn
+import pandas as pd
+from datetime import datetime, timedelta
+
+def get_big_df():
+    now = datetime.now()
+    expiration_minutes = 60 * 24  # 1 day
+
+    if 'df' not in pn.state.cache or 'df_time' not in pn.state.cache:
+        print("Loading df first time...")
+        pn.state.cache['df'] = pd.read_csv('myfile.csv')
+        pn.state.cache['df_time'] = now
+    elif (now - pn.state.cache['df_time']) > timedelta(minutes=expiration_minutes):
+        print("Reloading expired df...")
+        pn.state.cache['df'] = pd.read_csv('myfile.csv')
+        pn.state.cache['df_time'] = now
+
+    return pn.state.cache['df']
+
+
 
 import time
 from kombu.exceptions import OperationalError
