@@ -1,3 +1,56 @@
+import asyncio
+import websockets
+import json
+
+async def rmds_session():
+    uri = "wss://<rmds-endpoint>"
+    async with websockets.connect(uri) as ws:
+        # Send login
+        await ws.send(json.dumps({
+            "ID": 1,
+            "Domain": "Login",
+            "Key": {"Name": "YourUserName"}
+        }))
+        
+        # Listen or interact as needed
+        try:
+            while True:
+                message = await ws.recv()
+                print(message)
+                # Handle messages...
+
+        except asyncio.CancelledError:
+            print("Task cancelled, cleaning up...")
+            await clean_close(ws)
+            raise
+        
+        except Exception as e:
+            print(f"Error: {e}")
+            await clean_close(ws)
+
+async def clean_close(ws):
+    try:
+        # Optionally send RMDS logout / close message
+        await ws.send(json.dumps({
+            "ID": 1,
+            "Type": "Close"
+        }))
+    except Exception as e:
+        print(f"Error sending RMDS close: {e}")
+
+    # Initiate WebSocket close handshake
+    await ws.close()
+    await ws.wait_closed()
+    print("WebSocket closed cleanly.")
+
+# To stop the connection cleanly from outside:
+# task = asyncio.create_task(rmds_session())
+# task.cancel()
+# await task
+
+asyncio.run(rmds_session())
+
+
 
 import panel as pn
 import pandas as pd
