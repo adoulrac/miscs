@@ -1,3 +1,85 @@
+import requests
+from datetime import datetime, timedelta, timezone
+
+# === CONFIGURATION ===
+DAGSTER_GRAPHQL_URL = "http://localhost:3000/graphql"  # Modifiez si besoin
+AUTH_TOKEN = None  # Remplacez par un token si nécessaire ("Bearer abc123...")
+
+headers = {
+    "Content-Type": "application/json",
+}
+if AUTH_TOKEN:
+    headers["Authorization"] = f"Bearer {AUTH_TOKEN}"
+
+# === QUERY GraphQL ===
+query = """
+query GetTodayRuns($since: Float!) {
+  runs(filter: { createdAfter: $since }) {
+    runId
+    status
+    pipelineName
+    startTime
+    endTime
+  }
+}
+"""
+
+# Calcul de minuit aujourd'hui en UTC
+now = datetime.now(timezone.utc)
+midnight = datetime(now.year, now.month, now.day, tzinfo=timezone.utc)
+midnight_timestamp = midnight.timestamp()
+
+response = requests.post(
+    DAGSTER_GRAPHQL_URL,
+    json={"query": query, "variables": {"since": midnight_timestamp}},
+    headers=headers
+)
+
+if response.status_code != 200:
+    print("Erreur HTTP :", response.status_code)
+    print(response.text)
+    exit(1)
+
+data = response.json()
+
+if "errors" in data:
+    print("Erreur GraphQL :", data["errors"])
+    exit(1)
+
+runs = data["data"]["runs"]
+
+print(f"\n🎯 Travaux Dagster lancés aujourd'hui ({len(runs)}):\n")
+
+for run in runs:
+    name = run["pipelineName"]
+    run_id = run["runId"]
+    status = run["status"]
+    start = run.get("startTime")
+    end = run.get("endTime")
+
+    if start:
+        start_dt = datetime.fromtimestamp(start, tz=timezone.utc)
+        duration = (datetime.now(timezone.utc) - start_dt).total_seconds() / 60
+    else:
+        duration = 0
+
+    if status == "STARTED":
+        if duration > 60:
+            state = "⏱️ En cours depuis plus d'une heure"
+        else:
+            state = "🟡 En cours"
+    elif status == "SUCCESS":
+        state = "✅ Succès"
+    elif status == "FAILURE":
+        state = "❌ Échec"
+    else:
+        state = f"🔘 Statut : {status}"
+
+    print(f"- {name} ({run_id[:8]}) → {state}")
+
+
+
+
 import asyncio
 import websockets
 import json
