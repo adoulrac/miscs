@@ -1,3 +1,128 @@
+
+from confluent_kafka.avro import AvroConsumer
+from confluent_kafka.avro.serializer import SerializerError
+from confluent_kafka import TopicPartition
+from datetime import datetime
+import time
+
+
+def create_avro_consumer(broker, schema_registry_url, group_id="my-avro-consumer"):
+    consumer_config = {
+        'bootstrap.servers': broker,
+        'group.id': group_id,
+        'auto.offset.reset': 'none',  # on veut contrôler le point de départ
+        'schema.registry.url': schema_registry_url
+    }
+
+    return AvroConsumer(consumer_config)
+
+
+def assign_consumer_to_timestamp(consumer, topic, timestamp_dt):
+    # 1. Convertir datetime -> timestamp en millisecondes
+    timestamp_ms = int(time.mktime(timestamp_dt.timetuple()) * 1000)
+
+    # 2. Obtenir les partitions du topic
+    metadata = consumer.list_topics(topic, timeout=10)
+    partitions = metadata.topics[topic].partitions
+
+    topic_partitions = [TopicPartition(topic, p, timestamp_ms) for p in partitions]
+
+    # 3. Chercher les offsets pour ce timestamp
+    offsets = consumer.offsets_for_times(topic_partitions, timeout=10)
+
+    # 4. Assigner les partitions avec l'offset correspondant
+    valid_offsets = [tp for tp in offsets if tp.offset != -1]
+
+    if not valid_offsets:
+        raise ValueError("Aucun offset trouvé pour le timestamp fourni.")
+
+    consumer.assign(valid_offsets)
+    print(f"Assigned to offsets: {valid_offsets}")
+
+
+def consume_messages(consumer):
+    print("Consuming messages. Press Ctrl+C to stop.")
+    try:
+        while True:
+            try:
+                msg = consumer.poll(1.0)
+                if msg is None:
+                    continue
+
+                if msg.error():
+                    print(f"Error: {msg.error()}")
+                    continue
+
+                print("✔ Offset:", msg.offset())
+                print("✔ Key:", msg.key())
+                print("✔ Value:", msg.value())
+                print("---")
+
+            except SerializerError as e:
+                print("❌ Deserialization error:", e)
+                continue
+    except KeyboardInterrupt:
+        print("Stopped by user.")
+    finally:
+        consumer.close()
+
+
+
+
+
+from confluent_kafka.avro import AvroConsumer
+from confluent_kafka.avro.serializer import SerializerError
+
+
+def create_avro_consumer(broker, schema_registry_url, topic, group_id="my-avro-consumer"):
+    consumer_config = {
+        'bootstrap.servers': broker,
+        'group.id': group_id,
+        'auto.offset.reset': 'earliest',
+        'schema.registry.url': schema_registry_url
+    }
+
+    consumer = AvroConsumer(consumer_config)
+    consumer.subscribe([topic])
+    return consumer
+
+
+def consume_messages(consumer):
+    print("Consuming messages. Press Ctrl+C to stop.")
+    try:
+        while True:
+            try:
+                msg = consumer.poll(1.0)
+                if msg is None:
+                    continue
+
+                if msg.error():
+                    print(f"Error: {msg.error()}")
+                    continue
+
+                print("✔ Message Key:", msg.key())
+                print("✔ Message Value:", msg.value())
+                print("---")
+
+            except SerializerError as e:
+                print("❌ Deserialization error:", e)
+                continue
+    except KeyboardInterrupt:
+        print("Stopped by user.")
+    finally:
+        consumer.close()
+
+
+if __name__ == "__main__":
+    broker = "localhost:9092"  # 🔁 Remplace par l'adresse de ton broker
+    schema_registry_url = "http://localhost:8081"  # 🔁 URL de ton Schema Registry
+    topic = "ton-topic"  # 🔁 Remplace par le nom de ton topic
+
+    consumer = create_avro_consumer(broker, schema_registry_url, topic)
+    consume_messages(consumer)
+
+
+
 import requests
 from datetime import datetime, timedelta, timezone
 
