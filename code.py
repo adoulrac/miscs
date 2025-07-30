@@ -1,4 +1,58 @@
 
+from confluent_kafka import Consumer, TopicPartition
+import time
+
+def reset_offsets_at_timestamp(consumer, topic, timestamp_ms):
+    # Subscribe to topic
+    consumer.subscribe([topic])
+
+    # Force a poll to ensure the assignment is complete
+    while not consumer.assignment():
+        consumer.poll(1.0)  # Trigger the rebalance
+    
+    # Get current assignments
+    partitions = consumer.assignment()
+
+    # Map each partition to the desired timestamp
+    timestamps = [TopicPartition(p.topic, p.partition, timestamp_ms) for p in partitions]
+
+    # Look up the offset for the given timestamp
+    offsets = consumer.offsets_for_times(timestamps, timeout=10)
+
+    # Seek to the desired offset for each partition
+    for tp in offsets:
+        if tp.offset != -1:
+            consumer.seek(tp)
+        else:
+            print(f"No offset available for partition {tp.partition} at timestamp {timestamp_ms}")
+
+# Example usage
+conf = {
+    'bootstrap.servers': 'localhost:9092',
+    'group.id': 'my-group',
+    'auto.offset.reset': 'earliest',
+    'enable.auto.commit': False
+}
+consumer = Consumer(conf)
+
+timestamp_ms = int(time.time() - 3600) * 1000  # 1 hour ago
+reset_offsets_at_timestamp(consumer, 'my-topic', timestamp_ms)
+
+# Continue consuming
+while True:
+    msg = consumer.poll(1.0)
+    if msg is None:
+        continue
+    if msg.error():
+        print(f"Error: {msg.error()}")
+    else:
+        print(f"Received message: {msg.value().decode('utf-8')}")
+
+consumer.close()
+
+
+
+
 from confluent_kafka.avro import AvroConsumer
 from confluent_kafka.avro.serializer import SerializerError
 from confluent_kafka import TopicPartition
