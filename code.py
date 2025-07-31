@@ -1,4 +1,22 @@
 
+Properties props = new Properties();
+props.put("bootstrap.servers", "your-broker:9092");
+props.put("key.serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer");
+props.put("value.serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer");
+
+props.put("schema.registry.url", "https://your-schema-registry:8081");
+
+// Authentification SASL/PLAIN
+props.put("security.protocol", "SASL_SSL");  // ou SASL_PLAINTEXT
+props.put("sasl.mechanism", "PLAIN");
+props.put("sasl.jaas.config",
+    "org.apache.kafka.common.security.plain.PlainLoginModule required " +
+    "username=\"SVC_XXX\" " +
+    "password=\"your_password\";");
+
+
+
+
 from confluent_kafka import Consumer, TopicPartition
 import time
 
@@ -48,7 +66,7 @@ while True:
     else:
         print(f"Received message: {msg.value().decode('utf-8')}")
 
-consumer.close()
+consumer.close(
 
 
 
