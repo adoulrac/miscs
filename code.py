@@ -1,4 +1,276 @@
 
+from loader import run_pipeline, suggest_clickhouse_schema
+import pandas as pd
+
+def get_data():
+    return pd.DataFrame({
+        "user_id": [1, 2, 3],
+        "region": ["US", "EU", "US"],
+        "amount": [100.5, 200.0, 150.75],
+        "active": [True, False, True],
+        "signup_date": pd.to_datetime(["2023-01-01", "2023-02-15", "2023-03-10"])
+    })
+
+# Option 1: Let ClickHouse infer types from data
+# run_pipeline(get_data, table_name="users")
+
+# Option 2: Use recommendation
+df = get_data()
+recommended_schema = suggest_clickhouse_schema(df)
+run_pipeline(get_data, table_name="users", schema=recommended_schema)
+
+# Option 3: Provide manual schema
+# custom_schema = {
+#     "user_id": "UInt32",
+#     "region": "LowCardinality(String) CODEC(ZSTD)",
+#     "amount": "Float64",
+#     "active": "UInt8",
+#     "signup_date": "DateTime"
+# }
+# run_pipeline(get_data, table_name="users", schema=custom_schema)
+
+
+
+
+
+import pandas as pd
+import clickhouse_connect
+import uuid
+from datetime import datetime
+from typing import Callable, Optional
+from logger import setup_logger
+from config import CLICKHOUSE_CONFIG
+
+logger = setup_logger("ClickHouseLoader")
+
+
+def create_client():
+    logger.info("Connecting to ClickHouse...")
+    try:
+        client = clickhouse_connect.get_client(
+            host=CLICKHOUSE_CONFIG["host"],
+            port=CLICKHOUSE_CONFIG["port"],
+            username=CLICKHOUSE_CONFIG["username"],
+            password=CLICKHOUSE_CONFIG["password"],
+            database=CLICKHOUSE_CONFIG["database"]
+        )
+        logger.info("Connected to ClickHouse.")
+        return client
+    except Exception as e:
+        logger.exception("Failed to connect to ClickHouse.")
+        raise e
+
+
+def ensure_main_table_exists(client, table_name: str, schema: dict):
+    logger.info(f"Ensuring table '{table_name}' exists...")
+    try:
+        column_defs = [f"{col} {dtype}" for col, dtype in schema.items()]
+        column_defs.append("load_id UUID")
+        column_defs.append("load_timestamp DateTime")
+        ddl = f'''
+        CREATE TABLE IF NOT EXISTS {CLICKHOUSE_CONFIG["database"]}.{table_name} (
+            {', '.join(column_defs)}
+        ) ENGINE = MergeTree()
+        ORDER BY tuple()
+        '''
+        client.command(ddl)
+        logger.info(f"Table '{table_name}' is ready.")
+    except Exception as e:
+        logger.exception(f"Failed to ensure table '{table_name}'.")
+        raise e
+
+
+def ensure_log_table_exists(client):
+    logger.info("Ensuring log table exists...")
+    try:
+        ddl = f'''
+        CREATE TABLE IF NOT EXISTS {CLICKHOUSE_CONFIG["database"]}.load_log (
+            load_id UUID,
+            load_timestamp DateTime,
+            table_name String,
+            row_count UInt32,
+            status String,
+            error_message String
+        ) ENGINE = MergeTree()
+        ORDER BY load_timestamp
+        '''
+        client.command(ddl)
+        logger.info("Log table is ready.")
+    except Exception as e:
+        logger.exception("Failed to ensure log table.")
+        raise e
+
+
+def log_load(client, load_id, timestamp, table_name, row_count, status, error_message=""):
+    try:
+        log_df = pd.DataFrame([{
+            "load_id": load_id,
+            "load_timestamp": timestamp,
+            "table_name": table_name,
+            "row_count": row_count,
+            "status": status,
+            "error_message": error_message
+        }])
+        client.insert_df("load_log", log_df)
+        logger.info(f"Logged load event for table '{table_name}': {status}")
+    except Exception as e:
+        logger.error("⚠️ Failed to log load event.")
+        logger.exception(e)
+
+
+def load_dataframe_to_clickhouse(df: pd.DataFrame, client, table_name: str, load_id: str, timestamp: datetime):
+    if df.empty:
+        logger.warning("DataFrame is empty. Skipping insert.")
+        return 0
+
+    try:
+        df["load_id"] = load_id
+        df["load_timestamp"] = timestamp
+
+        logger.info(f"Inserting {len(df)} rows into '{table_name}'...")
+        client.insert_df(table_name, df)
+        logger.info("Insert complete.")
+        return len(df)
+    except Exception as e:
+        logger.exception(f"Failed to insert into '{table_name}'.")
+        raise e
+
+
+def infer_schema_from_df(df: pd.DataFrame) -> dict:
+    schema = {}
+    for col, dtype in df.dtypes.items():
+        if pd.api.types.is_integer_dtype(dtype):
+            schema[col] = "Int64"
+        elif pd.api.types.is_float_dtype(dtype):
+            schema[col] = "Float64"
+        elif pd.api.types.is_bool_dtype(dtype):
+            schema[col] = "UInt8"
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            schema[col] = "DateTime"
+        else:
+            schema[col] = "String"
+    return schema
+
+
+def suggest_clickhouse_schema(df: pd.DataFrame) -> dict:
+    schema = {}
+    for col in df.columns:
+        series = df[col].dropna()
+        dtype = series.dtype
+
+        if series.empty:
+            schema[col] = "String"
+            continue
+
+        unique_ratio = series.nunique() / len(series)
+
+        if pd.api.types.is_string_dtype(dtype):
+            if unique_ratio < 0.5:
+                schema[col] = "LowCardinality(String)"
+            else:
+                schema[col] = "String"
+
+        elif pd.api.types.is_integer_dtype(dtype):
+            min_val, max_val = series.min(), series.max()
+            if min_val >= 0:
+                if max_val < 256:
+                    schema[col] = "UInt8"
+                elif max_val < 65536:
+                    schema[col] = "UInt16"
+                elif max_val < 2**32:
+                    schema[col] = "UInt32"
+                else:
+                    schema[col] = "UInt64"
+            else:
+                if -128 <= min_val <= 127:
+                    schema[col] = "Int8"
+                elif -32768 <= min_val <= 32767:
+                    schema[col] = "Int16"
+                elif -2**31 <= min_val <= 2**31 - 1:
+                    schema[col] = "Int32"
+                else:
+                    schema[col] = "Int64"
+
+        elif pd.api.types.is_float_dtype(dtype):
+            schema[col] = "Float32" if series.std() < 1e-3 else "Float64"
+
+        elif pd.api.types.is_bool_dtype(dtype):
+            schema[col] = "UInt8"
+
+        elif pd.api.types.is_datetime64_any_dtype(dtype):
+            schema[col] = "DateTime"
+
+        else:
+            schema[col] = "String"
+
+    return schema
+
+
+def run_pipeline(
+    df_supplier: Callable[[], pd.DataFrame],
+    table_name: str,
+    schema: Optional[dict] = None
+):
+    load_id = str(uuid.uuid4())
+    timestamp = datetime.utcnow()
+
+    client = create_client()
+    ensure_log_table_exists(client)
+
+    try:
+        df = df_supplier()
+        if not isinstance(df, pd.DataFrame):
+            raise TypeError("Data supplier must return a pandas DataFrame.")
+
+        if schema is None:
+            schema = infer_schema_from_df(df)
+
+        ensure_main_table_exists(client, table_name, schema)
+        row_count = load_dataframe_to_clickhouse(df, client, table_name, load_id, timestamp)
+        log_load(client, load_id, timestamp, table_name, row_count, status="success")
+    except Exception as e:
+        logger.error("Pipeline failed.")
+        log_load(client, load_id, timestamp, table_name, 0, status="failed", error_message=str(e))
+        raise e
+
+
+
+import logging
+
+def setup_logger(name: str) -> logging.Logger:
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+    if not logger.hasHandlers():
+        ch = logging.StreamHandler()
+        ch.setLevel(logging.INFO)
+        formatter = logging.Formatter('[%(asctime)s] %(levelname)s: %(message)s')
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+
+    return logger
+
+
+
+
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
+
+CLICKHOUSE_CONFIG = {
+    "host": os.getenv("CLICKHOUSE_HOST", "localhost"),
+    "port": int(os.getenv("CLICKHOUSE_PORT", 8123)),
+    "username": os.getenv("CLICKHOUSE_USER", "default"),
+    "password": os.getenv("CLICKHOUSE_PASSWORD", ""),
+    "database": os.getenv("CLICKHOUSE_DATABASE", "default")
+}
+
+
+
+
+
+
 Properties props = new Properties();
 props.put("bootstrap.servers", "your-broker:9092");
 props.put("key.serializer", "io.confluent.kafka.serializers.KafkaAvroSerializer");
