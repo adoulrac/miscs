@@ -1,4 +1,251 @@
 
+-- TABLE PRINCIPALE
+CREATE TABLE t_dummy_tick_prices_avro
+(
+    instrument String,
+    price Float32,
+    timestamp DateTime64(3),
+    insertion_timestamp DateTime64(3),
+    t_dt Date MATERIALIZED toDate(timestamp)
+)
+ENGINE = ReplicatedMergeTree('/clickhouse/tables/{shard}/t_dummy_tick_prices_avro', '{replica}')
+PARTITION BY t_dt
+ORDER BY (instrument, timestamp);
+
+
+-- 1. AGRÉGATION PAR MINUTE
+CREATE MATERIALIZED VIEW mv_01_minute
+ENGINE = MergeTree
+PARTITION BY t_dt
+ORDER BY (instrument, ts_min)
+AS
+SELECT
+    instrument,
+    toStartOfMinute(timestamp) AS ts_min,
+    count() AS trades,
+    avg(price) AS avg_price,
+    sum(price) AS sum_price,
+    max(price) AS max_price,
+    min(price) AS min_price,
+    t_dt
+FROM t_dummy_tick_prices_avro
+GROUP BY instrument, ts_min, t_dt;
+
+
+-- 2. PAR 5 MINUTES
+CREATE MATERIALIZED VIEW mv_02_5min
+ENGINE = MergeTree
+PARTITION BY toDate(ts_min)
+ORDER BY (instrument, ts_5min)
+AS
+SELECT
+    instrument,
+    toStartOfFiveMinute(ts_min) AS ts_5min,
+    sum(trades) AS trades,
+    avg(avg_price) AS avg_price,
+    sum(sum_price) AS sum_price,
+    max(max_price) AS max_price,
+    min(min_price) AS min_price
+FROM mv_01_minute
+GROUP BY instrument, ts_5min;
+
+
+-- 3. PAR HEURE
+CREATE MATERIALIZED VIEW mv_03_hourly
+ENGINE = MergeTree
+PARTITION BY toDate(ts_5min)
+ORDER BY (instrument, ts_hour)
+AS
+SELECT
+    instrument,
+    toStartOfHour(ts_5min) AS ts_hour,
+    sum(trades) AS trades,
+    avg(avg_price) AS avg_price,
+    sum(sum_price) AS sum_price,
+    max(max_price) AS max_price,
+    min(min_price) AS min_price
+FROM mv_02_5min
+GROUP BY instrument, ts_hour;
+
+
+-- 4. PAR JOUR
+CREATE MATERIALIZED VIEW mv_04_daily
+ENGINE = MergeTree
+PARTITION BY toDate(ts_hour)
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    toDate(ts_hour) AS ts_day,
+    sum(trades) AS trades,
+    avg(avg_price) AS avg_price,
+    sum(sum_price) AS sum_price
+FROM mv_03_hourly
+GROUP BY instrument, ts_day;
+
+
+-- 5. STATS PAR JOUR
+CREATE MATERIALIZED VIEW mv_05_daily_stats
+ENGINE = MergeTree
+PARTITION BY ts_day
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    median(avg_price) AS median_price,
+    stddevPop(avg_price) AS stddev_price
+FROM mv_04_daily
+GROUP BY instrument, ts_day;
+
+
+-- 6. PRIX LE PLUS RÉCENT PAR JOUR
+CREATE MATERIALIZED VIEW mv_06_latest_price
+ENGINE = MergeTree
+PARTITION BY ts_day
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    anyLast(avg_price) AS last_avg_price
+FROM mv_04_daily
+GROUP BY instrument, ts_day;
+
+
+-- 7. MOYENNE MOBILE SUR 7 JOURS
+CREATE MATERIALIZED VIEW mv_07_rolling_7d
+ENGINE = MergeTree
+PARTITION BY instrument
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    avg(avg_price) OVER (PARTITION BY instrument ORDER BY ts_day ROWS BETWEEN 6 PRECEDING AND CURRENT ROW) AS avg_price_7d
+FROM mv_04_daily;
+
+
+-- 8. VOLATILITÉ SUR 30 JOURS
+CREATE MATERIALIZED VIEW mv_08_volatility_30d
+ENGINE = MergeTree
+PARTITION BY instrument
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    stddevPop(avg_price) OVER (PARTITION BY instrument ORDER BY ts_day ROWS BETWEEN 29 PRECEDING AND CURRENT ROW) AS vol_30d
+FROM mv_04_daily;
+
+
+-- 9. EXTREMES (MIN/MAX)
+CREATE MATERIALIZED VIEW mv_09_extremes
+ENGINE = MergeTree
+PARTITION BY instrument
+ORDER BY (instrument)
+AS
+SELECT
+    instrument,
+    max(avg_price) AS max_avg_price,
+    min(avg_price) AS min_avg_price,
+    argMax(ts_day, avg_price) AS max_day,
+    argMin(ts_day, avg_price) AS min_day
+FROM mv_04_daily
+GROUP BY instrument;
+
+
+-- 10. VARIATION QUOTIDIENNE
+CREATE MATERIALIZED VIEW mv_10_price_deltas
+ENGINE = MergeTree
+PARTITION BY instrument
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    avg_price,
+    lag(avg_price, 1) OVER (PARTITION BY instrument ORDER BY ts_day) AS prev_day_price,
+    avg_price - lag(avg_price, 1) OVER (PARTITION BY instrument ORDER BY ts_day) AS delta_price
+FROM mv_04_daily;
+
+
+-- 11. ALERTE BAISSE DE PRIX > 5%
+CREATE MATERIALIZED VIEW mv_11_price_drops
+ENGINE = MergeTree
+PARTITION BY instrument
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    avg_price,
+    prev_day_price,
+    delta_price,
+    (delta_price / prev_day_price) * 100 AS drop_pct
+FROM mv_10_price_deltas
+WHERE (delta_price / prev_day_price) * 100 < -5;
+
+
+-- 12. CLASSEMENT QUOTIDIEN PAR VOLUME
+CREATE MATERIALIZED VIEW mv_12_daily_ranking
+ENGINE = MergeTree
+PARTITION BY ts_day
+ORDER BY (ts_day, rank)
+AS
+SELECT
+    ts_day,
+    instrument,
+    trades,
+    RANK() OVER (PARTITION BY ts_day ORDER BY trades DESC) AS rank
+FROM mv_04_daily;
+
+
+-- 13. AMPLITUDE DE PRIX PAR JOUR
+CREATE MATERIALIZED VIEW mv_13_daily_range
+ENGINE = MergeTree
+PARTITION BY ts_day
+ORDER BY (instrument, ts_day)
+AS
+SELECT
+    instrument,
+    ts_day,
+    max(price) - min(price) AS price_range
+FROM t_dummy_tick_prices_avro
+GROUP BY instrument, ts_day;
+
+
+-- 14. RÉSUMÉ LONG TERME
+CREATE MATERIALIZED VIEW mv_14_summary
+ENGINE = MergeTree
+ORDER BY instrument
+AS
+SELECT
+    instrument,
+    count() AS days_count,
+    sum(trades) AS total_trades,
+    avg(avg_price) AS long_term_avg_price
+FROM mv_04_daily
+GROUP BY instrument;
+
+
+-- 15. LATENCE D’INSERTION (timestamp métier vs ingestion)
+CREATE MATERIALIZED VIEW mv_15_latency
+ENGINE = MergeTree
+PARTITION BY t_dt
+ORDER BY (instrument, timestamp)
+AS
+SELECT
+    instrument,
+    timestamp,
+    insertion_timestamp,
+    dateDiff('millisecond', timestamp, insertion_timestamp) AS latency_ms,
+    t_dt
+FROM t_dummy_tick_prices_avro;
+
+
+
+
 from loader import run_pipeline, suggest_clickhouse_schema
 import pandas as pd
 
