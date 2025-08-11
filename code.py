@@ -1,3 +1,52 @@
+import boto3
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def copy_object(s3_client, source_bucket, source_key, dest_bucket, dest_key):
+    """Copy a single object between buckets."""
+    s3_client.copy(
+        CopySource={'Bucket': source_bucket, 'Key': source_key},
+        Bucket=dest_bucket,
+        Key=dest_key
+    )
+
+def bulk_copy_s3(source_bucket, dest_bucket, source_prefix="", dest_prefix="", max_workers=20):
+    """Recursively copy from one S3 bucket/prefix to another."""
+    s3_client = boto3.client("s3")
+    paginator = s3_client.get_paginator("list_objects_v2")
+    
+    futures = []
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for page in paginator.paginate(Bucket=source_bucket, Prefix=source_prefix):
+            for obj in page.get("Contents", []):
+                source_key = obj["Key"]
+                
+                # Preserve folder structure
+                relative_key = source_key[len(source_prefix):] if source_prefix else source_key
+                dest_key = f"{dest_prefix}{relative_key}"
+                
+                futures.append(
+                    executor.submit(copy_object, s3_client, source_bucket, source_key, dest_bucket, dest_key)
+                )
+        
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error copying file: {e}")
+
+if __name__ == "__main__":
+    # Example usage:
+    SOURCE_BUCKET = "my-prod-bucket"
+    DEST_BUCKET = "my-staging-bucket"
+    SOURCE_PREFIX = "data/parquet/"   # folder path inside bucket
+    DEST_PREFIX = "data/parquet/"     # folder path in destination bucket
+    
+    bulk_copy_s3(SOURCE_BUCKET, DEST_BUCKET, SOURCE_PREFIX, DEST_PREFIX, max_workers=50)
+
+
+
+
+
 
 -- TABLE PRINCIPALE
 CREATE TABLE t_dummy_tick_prices_avro
