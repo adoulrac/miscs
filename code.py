@@ -1,3 +1,46 @@
+
+import os
+import boto3
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+def upload_file(s3_client, local_path, bucket, key):
+    """Upload a single file to S3."""
+    s3_client.upload_file(local_path, bucket, key)
+
+def bulk_upload_s3(local_dir, bucket, prefix="", max_workers=20):
+    """Recursively upload files from a local folder to S3."""
+    s3_client = boto3.client("s3")
+    futures = []
+    
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        for root, _, files in os.walk(local_dir):
+            for filename in files:
+                local_path = os.path.join(root, filename)
+                
+                # Get relative path to maintain folder structure
+                relative_path = os.path.relpath(local_path, local_dir)
+                s3_key = os.path.join(prefix, relative_path).replace("\\", "/")  # S3 uses '/'
+                
+                futures.append(
+                    executor.submit(upload_file, s3_client, local_path, bucket, s3_key)
+                )
+        
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                print(f"Error uploading file: {e}")
+
+if __name__ == "__main__":
+    LOCAL_DIR = "/path/to/local/folder"
+    BUCKET_NAME = "my-destination-bucket"
+    S3_PREFIX = "data/parquet/"  # Folder path in S3 bucket
+    
+    bulk_upload_s3(LOCAL_DIR, BUCKET_NAME, S3_PREFIX, max_workers=50)
+
+
+
+
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
