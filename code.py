@@ -1,4 +1,21 @@
 
+import duckdb
+
+# Connexion DuckDB (ici en mémoire)
+con = duckdb.connect(":memory:")
+
+# Importer toute la base exportée
+con.execute("IMPORT DATABASE 'chemin/vers/dossier_export'")
+
+# Voir les tables
+print(con.execute("SHOW TABLES").fetchall())
+
+# Charger une table dans un DataFrame Pandas
+df = con.execute("SELECT * FROM nom_de_table").df()
+print(df.head())
+
+
+
 import os
 import boto3
 from concurrent.futures import ThreadPoolExecutor, as_completed
