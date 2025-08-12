@@ -1,4 +1,13 @@
 
+SET max_memory_usage = 8G;
+SET max_bytes_before_external_sort = 500000000;
+SET max_bytes_before_external_group_by = 500000000;
+SET max_bytes_before_external_join = 500000000;
+SET max_temporary_data_on_disk = 100000000000;
+
+
+
+
 import duckdb
 
 # Connexion DuckDB (ici en mémoire)
