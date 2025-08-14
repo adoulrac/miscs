@@ -1,4 +1,118 @@
 
+-- 1. Clean up from previous runs
+DROP TABLE IF EXISTS t_date_part_date_order_date;
+DROP TABLE IF EXISTS t_date_part_date_order_uint32;
+DROP TABLE IF EXISTS t_date_part_uint32_order_date;
+DROP TABLE IF EXISTS t_date_part_uint32_order_uint32;
+
+-- 2. Create 4 test tables
+
+-- Case 1: Partition by Date, ORDER BY Date
+CREATE TABLE t_date_part_date_order_date
+(
+    event_date Date,
+    sensor_id UInt32,
+    value Float64
+)
+ENGINE = MergeTree
+PARTITION BY event_date
+ORDER BY (event_date, sensor_id);
+
+-- Case 2: Partition by Date, ORDER BY UInt32
+CREATE TABLE t_date_part_date_order_uint32
+(
+    event_date Date,
+    date_int UInt32 MATERIALIZED toUInt32(formatDateTime(event_date, '%Y%m%d')),
+    sensor_id UInt32,
+    value Float64
+)
+ENGINE = MergeTree
+PARTITION BY event_date
+ORDER BY (date_int, sensor_id);
+
+-- Case 3: Partition by UInt32, ORDER BY Date
+CREATE TABLE t_date_part_uint32_order_date
+(
+    date_int UInt32,
+    event_date Date MATERIALIZED toDate(formatDateTime(date_int, '%Y%m%d')),
+    sensor_id UInt32,
+    value Float64
+)
+ENGINE = MergeTree
+PARTITION BY date_int
+ORDER BY (event_date, sensor_id);
+
+-- Case 4: Partition by UInt32, ORDER BY UInt32
+CREATE TABLE t_date_part_uint32_order_uint32
+(
+    date_int UInt32,
+    sensor_id UInt32,
+    value Float64
+)
+ENGINE = MergeTree
+PARTITION BY date_int
+ORDER BY (date_int, sensor_id);
+
+-- 3. Generate 10 million rows of fake data over 1 year
+INSERT INTO t_date_part_date_order_date
+SELECT 
+    toDate('2024-01-01') + (number % 365) AS event_date,
+    number % 1000 AS sensor_id,
+    rand()
+FROM numbers(10000000);
+
+INSERT INTO t_date_part_date_order_uint32
+SELECT 
+    toDate('2024-01-01') + (number % 365) AS event_date,
+    number % 1000 AS sensor_id,
+    rand()
+FROM numbers(10000000);
+
+INSERT INTO t_date_part_uint32_order_date
+SELECT 
+    toUInt32(formatDateTime(toDate('2024-01-01') + (number % 365), '%Y%m%d')) AS date_int,
+    number % 1000 AS sensor_id,
+    rand()
+FROM numbers(10000000);
+
+INSERT INTO t_date_part_uint32_order_uint32
+SELECT 
+    toUInt32(formatDateTime(toDate('2024-01-01') + (number % 365), '%Y%m%d')) AS date_int,
+    number % 1000 AS sensor_id,
+    rand()
+FROM numbers(10000000);
+
+-- 4. Test queries and measure performance
+SET send_logs_level = 'trace';
+
+SELECT 'Case 1' AS table_name, count() 
+FROM t_date_part_date_order_date
+WHERE event_date BETWEEN '2024-06-01' AND '2024-08-01';
+
+SELECT 'Case 2' AS table_name, count() 
+FROM t_date_part_date_order_uint32
+WHERE event_date BETWEEN '2024-06-01' AND '2024-08-01';
+
+SELECT 'Case 3' AS table_name, count() 
+FROM t_date_part_uint32_order_date
+WHERE date_int BETWEEN 20240601 AND 20240801;
+
+SELECT 'Case 4' AS table_name, count() 
+FROM t_date_part_uint32_order_uint32
+WHERE date_int BETWEEN 20240601 AND 20240801;
+
+-- 5. Check partitions read for each
+SELECT table, sum(rows) AS rows_read, sum(parts) AS parts_read
+FROM system.query_log
+WHERE event_time > now() - INTERVAL 5 MINUTE
+  AND type = 'QueryFinish'
+  AND query LIKE 'SELECT %count()%'
+GROUP BY table;
+
+
+
+
+
 SET max_memory_usage = 8G;
 SET max_bytes_before_external_sort = 500000000;
 SET max_bytes_before_external_group_by = 500000000;
