@@ -1,4 +1,146 @@
 
+import re
+import json
+import datetime
+import pandas as pd
+from sqlalchemy import create_engine, text
+from tdda.constraints import verify
+
+
+# -------------------------------------------------------------
+# 1️⃣ Lecture CTL depuis la base
+# -------------------------------------------------------------
+def get_ctl_text_from_db(conn, file_id):
+    query = text("SELECT ctl_config FROM loader_config WHERE file_id = :id")
+    result = conn.execute(query, {'id': file_id}).fetchone()
+    if result:
+        return result[0]
+    else:
+        raise ValueError(f"Aucun CTL trouvé pour file_id={file_id}")
+
+
+# -------------------------------------------------------------
+# 2️⃣ Extraction du séparateur et du quotechar
+# -------------------------------------------------------------
+def parse_ctl_minimal(ctl_text: str) -> dict:
+    m = re.search(r"FIELDS\s+TERMINATED\s+BY\s+'([^']+)'", ctl_text, re.IGNORECASE)
+    separator = m.group(1) if m else ','
+
+    m = re.search(r"OPTIONALLY\s+ENCLOSED\s+BY\s+'([^']+)'", ctl_text, re.IGNORECASE)
+    quotechar = m.group(1) if m else '"'
+
+    return {'separator': separator, 'quotechar': quotechar}
+
+
+# -------------------------------------------------------------
+# 3️⃣ Chargement du fichier en DataFrame
+# -------------------------------------------------------------
+def load_file_to_df(file_path: str, ctl_text: str) -> pd.DataFrame:
+    ctl = parse_ctl_minimal(ctl_text)
+    df = pd.read_csv(
+        file_path,
+        sep=ctl['separator'],
+        quotechar=ctl['quotechar'],
+        engine='python',
+        dtype=str,
+        on_bad_lines='skip'
+    )
+    return df
+
+
+# -------------------------------------------------------------
+# 4️⃣ Vérification TDDA + stockage en base Oracle
+# -------------------------------------------------------------
+def verify_and_store_results(conn, file_id, file_path, df, constraint_file):
+    start_time = datetime.datetime.now()
+    verification = verify.verify_df(df, constraint_file)
+    end_time = datetime.datetime.now()
+
+    # --- Insertion du run principal ---
+    run_sql = text("""
+        INSERT INTO TDDA_RUN_LOG
+        (FILE_ID, FILE_NAME, CONSTRAINT_FILE, STARTED_AT, ENDED_AT, PASSES, SUMMARY)
+        VALUES (:file_id, :file_name, :constraint_file, :started_at, :ended_at, :passes, :summary)
+        RETURNING RUN_ID INTO :run_id
+    """)
+
+    run_id_param = conn.connection.cursor().var(int)
+    conn.execute(run_sql, {
+        'file_id': file_id,
+        'file_name': file_path,
+        'constraint_file': constraint_file,
+        'started_at': start_time,
+        'ended_at': end_time,
+        'passes': 'Y' if verification.passes else 'N',
+        'summary': verification.summary(),
+        'run_id': run_id_param
+    })
+    run_id = run_id_param.getvalue()[0]
+
+    # --- Insertion des violations détaillées ---
+    insert_viol = text("""
+        INSERT INTO TDDA_VIOLATIONS
+        (RUN_ID, FIELD_NAME, CHECK_TYPE, EXPECTED_VALUE, ACTUAL_VALUE, PASSES, DETAILS_JSON)
+        VALUES (:run_id, :field_name, :check_type, :expected_value, :actual_value, :passes, :details_json)
+    """)
+
+    for field, checks in verification.results['fields'].items():
+        for check_type, check_result in checks.items():
+            conn.execute(insert_viol, {
+                'run_id': run_id,
+                'field_name': field,
+                'check_type': check_type,
+                'expected_value': json.dumps(check_result.get('expected', None)),
+                'actual_value': json.dumps(
+                    check_result.get('actual') or check_result.get('unexpected_values', None)
+                ),
+                'passes': 'Y' if check_result.get('passes', True) else 'N',
+                'details_json': json.dumps(check_result)
+            })
+
+    conn.commit()
+    print(f"✅ Résultats TDDA stockés pour RUN_ID={run_id}")
+    return run_id
+
+
+# -------------------------------------------------------------
+# 5️⃣ Exemple d’utilisation
+# -------------------------------------------------------------
+if __name__ == "__main__":
+
+    # --- Connexion Oracle (adapter ton DSN) ---
+    engine = create_engine("oracle+cx_oracle://user:password@mydb:1521/ORCLPDB1")
+    conn = engine.connect()
+
+    file_id = 101
+    file_path = "/data/incoming/clients.txt"
+    constraint_path = "constraints/clients_constraints.tdda"
+
+    # --- Lecture CTL ---
+    ctl_text = get_ctl_text_from_db(conn, file_id)
+
+    # --- Chargement fichier ---
+    df = load_file_to_df(file_path, ctl_text)
+
+    # --- Vérification et stockage des résultats ---
+    run_id = verify_and_store_results(conn, file_id, file_path, df, constraint_path)
+
+    conn.close()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 -- 1. Clean up from previous runs
 DROP TABLE IF EXISTS t_date_part_date_order_date;
 DROP TABLE IF EXISTS t_date_part_date_order_uint32;
