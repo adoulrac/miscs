@@ -1,3 +1,248 @@
+"""
+k8s_pod_files_api.py
+
+Single-file utilities for:
+- Discovering pods from a Deployment
+- Listing files inside pods (regex supported)
+- Previewing file content (last N lines)
+- Streaming file download (FastAPI-friendly)
+
+Requirements:
+  pip install kubernetes fastapi
+
+RBAC:
+  - get/list pods
+  - get deployments
+  - create pods/exec
+"""
+
+from typing import Dict, List, Optional, Generator
+from kubernetes import client, config
+from kubernetes.stream import stream
+
+
+# ---------------------------------------------------------------------
+# Kubernetes client factory
+# ---------------------------------------------------------------------
+
+def build_k8s_clients(context: Optional[str] = None):
+    if context:
+        config.load_kube_config(context=context)
+    else:
+        config.load_kube_config()
+
+    c = client.Configuration.get_default_copy()
+    c.client_side_validation = False
+    c.connection_pool_maxsize = 20
+    c.qps = 50
+    c.burst = 100
+    c.timeout_seconds = 30
+
+    api_client = client.ApiClient(c)
+    return (
+        client.AppsV1Api(api_client),
+        client.CoreV1Api(api_client),
+    )
+
+
+# ---------------------------------------------------------------------
+# Pod discovery
+# ---------------------------------------------------------------------
+
+def get_pods_for_deployment(
+    api_apps: client.AppsV1Api,
+    api_core: client.CoreV1Api,
+    namespace: str,
+    deployment_name: str,
+):
+    deployment = api_apps.read_namespaced_deployment(
+        name=deployment_name,
+        namespace=namespace,
+    )
+
+    selector = deployment.spec.selector.match_labels
+    label_selector = ",".join(f"{k}={v}" for k, v in selector.items())
+
+    pods = api_core.list_namespaced_pod(
+        namespace=namespace,
+        label_selector=label_selector,
+    )
+
+    return pods.items
+
+
+# ---------------------------------------------------------------------
+# File listing
+# ---------------------------------------------------------------------
+
+def list_files_in_pod(
+    api_core: client.CoreV1Api,
+    pod_name: str,
+    namespace: str,
+    path: str,
+    regex: Optional[str] = None,
+    container: Optional[str] = None,
+    timeout: int = 20,
+) -> List[str]:
+    if regex:
+        shell_cmd = f"find {path} -type f | grep -E '{regex}'"
+    else:
+        shell_cmd = f"find {path} -type f"
+
+    cmd = ["sh", "-c", shell_cmd]
+
+    resp = stream(
+        api_core.connect_get_namespaced_pod_exec,
+        pod_name,
+        namespace,
+        command=cmd,
+        container=container,
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+        _request_timeout=timeout,
+    )
+
+    return [line.strip() for line in resp.splitlines() if line.strip()]
+
+
+def list_files_for_deployment(
+    api_apps: client.AppsV1Api,
+    api_core: client.CoreV1Api,
+    namespace: str,
+    deployment_name: str,
+    path: str,
+    regex: Optional[str] = None,
+    container: Optional[str] = None,
+) -> Dict[str, List[str]]:
+    pods = get_pods_for_deployment(
+        api_apps, api_core, namespace, deployment_name
+    )
+
+    result = {}
+
+    for pod in pods:
+        pod_name = pod.metadata.name
+        try:
+            result[pod_name] = list_files_in_pod(
+                api_core,
+                pod_name,
+                namespace,
+                path=path,
+                regex=regex,
+                container=container,
+            )
+        except Exception as e:
+            result[pod_name] = [f"ERROR: {e}"]
+
+    return result
+
+
+# ---------------------------------------------------------------------
+# File preview (last N lines)
+# ---------------------------------------------------------------------
+
+def preview_file_from_pod(
+    api_core: client.CoreV1Api,
+    pod_name: str,
+    namespace: str,
+    file_path: str,
+    max_lines: int = 200,
+    container: Optional[str] = None,
+    timeout: int = 20,
+) -> str:
+    """
+    Returns last N lines of a file as a string (safe for UI preview).
+    """
+    shell_cmd = f"tail -n {max_lines} {file_path}"
+    cmd = ["sh", "-c", shell_cmd]
+
+    resp = stream(
+        api_core.connect_get_namespaced_pod_exec,
+        pod_name,
+        namespace,
+        command=cmd,
+        container=container,
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+        _request_timeout=timeout,
+    )
+
+    return resp
+
+
+# ---------------------------------------------------------------------
+# File streaming (download)
+# ---------------------------------------------------------------------
+
+def stream_file_from_pod(
+    api_core: client.CoreV1Api,
+    pod_name: str,
+    namespace: str,
+    file_path: str,
+    container: Optional[str] = None,
+    timeout: int = 30,
+) -> Generator[bytes, None, None]:
+    """
+    Generator yielding file bytes (FastAPI StreamingResponse).
+    """
+    cmd = ["cat", file_path]
+
+    resp = stream(
+        api_core.connect_get_namespaced_pod_exec,
+        pod_name,
+        namespace,
+        command=cmd,
+        container=container,
+        stderr=True,
+        stdin=False,
+        stdout=True,
+        tty=False,
+        _request_timeout=timeout,
+        _preload_content=False,
+    )
+
+    try:
+        while resp.is_open():
+            resp.update(timeout=1)
+
+            if resp.peek_stdout():
+                yield resp.read_stdout().encode()
+
+            if resp.peek_stderr():
+                err = resp.read_stderr()
+                raise RuntimeError(err)
+    finally:
+        resp.close()
+
+
+# ---------------------------------------------------------------------
+# Example (remove later)
+# ---------------------------------------------------------------------
+
+if __name__ == "__main__":
+    apps, core = build_k8s_clients()
+
+    files = list_files_for_deployment(
+        apps,
+        core,
+        namespace="default",
+        deployment_name="my-app",
+        path="/var/log",
+        regex=".*\\.log$",
+    )
+
+    for pod, paths in files.items():
+        print(pod)
+        for p in paths:
+            print(" ", p)
+
+
+
+
 
 import re
 import json
