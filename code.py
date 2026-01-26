@@ -1,3 +1,157 @@
+
+package kafka.reset;
+
+import org.apache.kafka.clients.consumer.*;
+import org.apache.kafka.common.TopicPartition;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Duration;
+import java.util.*;
+
+/**
+ * KafkaOffsetResetUtil
+ *
+ * Utilitaires robustes pour reset des offsets Kafka.
+ *
+ * Hypothèses :
+ *  - KafkaConsumer Java officiel
+ *  - enable.auto.commit = false
+ *  - reset exécuté AU DÉMARRAGE, avant la boucle de consommation
+ *  - subscribe() (pas assign())
+ */
+public final class KafkaOffsetResetUtil {
+
+    private static final Logger log = LoggerFactory.getLogger(KafkaOffsetResetUtil.class);
+
+    private KafkaOffsetResetUtil() {
+        // util class
+    }
+
+    /**
+     * Reset toutes les partitions assignées au début du topic (EARLIEST).
+     * Fonctionne toujours, indépendamment des timestamps.
+     */
+    public static void resetToBeginning(KafkaConsumer<?, ?> consumer) {
+        log.info("==== Kafka offset reset: EARLIEST ====");
+
+        ensurePartitionsAssigned(consumer);
+
+        Set<TopicPartition> partitions = consumer.assignment();
+        log.info("Assigned partitions: {}", partitions);
+
+        consumer.seekToBeginning(partitions);
+
+        logPositions("After seekToBeginning", consumer, partitions);
+
+        consumer.commitSync();
+        log.info("EARLIEST reset committed successfully");
+    }
+
+    /**
+     * Reset toutes les partitions à partir d’un timestamp Kafka.
+     * Si Kafka ne trouve aucun offset pour une partition, fallback optionnel vers EARLIEST.
+     *
+     * @param timestampMillis timestamp en millis
+     * @param fallbackToBeginning si true, fallback EARLIEST quand offsetsForTimes retourne null
+     */
+    public static void resetToTimestamp(
+            KafkaConsumer<?, ?> consumer,
+            long timestampMillis,
+            boolean fallbackToBeginning
+    ) {
+        log.info(
+            "==== Kafka offset reset: TIMESTAMP {} ({}) ====",
+            timestampMillis,
+            new Date(timestampMillis)
+        );
+
+        ensurePartitionsAssigned(consumer);
+
+        Set<TopicPartition> partitions = consumer.assignment();
+        log.info("Assigned partitions: {}", partitions);
+
+        Map<TopicPartition, Long> timestampQuery = new HashMap<>();
+        for (TopicPartition tp : partitions) {
+            timestampQuery.put(tp, timestampMillis);
+        }
+
+        Map<TopicPartition, OffsetAndTimestamp> offsets =
+                consumer.offsetsForTimes(timestampQuery);
+
+        boolean fallbackUsed = false;
+
+        for (TopicPartition tp : partitions) {
+            OffsetAndTimestamp oat = offsets.get(tp);
+
+            if (oat == null) {
+                log.warn(
+                    "No offset found for partition {} at timestamp {}",
+                    tp, timestampMillis
+                );
+
+                if (fallbackToBeginning) {
+                    log.warn("Fallback to EARLIEST for partition {}", tp);
+                    consumer.seekToBeginning(Collections.singleton(tp));
+                    fallbackUsed = true;
+                }
+            } else {
+                consumer.seek(tp, oat.offset());
+                log.info(
+                    "Partition {} -> seek to offset {} (recordTimestamp={})",
+                    tp, oat.offset(), new Date(oat.timestamp())
+                );
+            }
+        }
+
+        logPositions("After seek (timestamp)", consumer, partitions);
+
+        consumer.commitSync();
+
+        if (fallbackUsed) {
+            log.warn("TIMESTAMP reset completed WITH fallback to EARLIEST");
+        } else {
+            log.info("TIMESTAMP reset committed successfully");
+        }
+    }
+
+    /**
+     * Force l’assignation des partitions via poll().
+     * Obligatoire avant tout seek().
+     */
+    private static void ensurePartitionsAssigned(KafkaConsumer<?, ?> consumer) {
+        log.debug("Ensuring partitions are assigned");
+
+        consumer.poll(Duration.ofSeconds(1));
+
+        Set<TopicPartition> partitions = consumer.assignment();
+        if (partitions == null || partitions.isEmpty()) {
+            throw new IllegalStateException(
+                "No partitions assigned to consumer. " +
+                "Ensure subscribe() was called before reset."
+            );
+        }
+    }
+
+    /**
+     * Log les offsets courants par partition.
+     */
+    private static void logPositions(
+            String prefix,
+            KafkaConsumer<?, ?> consumer,
+            Set<TopicPartition> partitions
+    ) {
+        for (TopicPartition tp : partitions) {
+            long position = consumer.position(tp);
+            log.info("{} -> {} offset={}", prefix, tp, position);
+        }
+    }
+}
+
+
+
+
+
 """
 k8s_pod_files_api.py
 
