@@ -1,4 +1,280 @@
 
+# ============================================================
+# ===== file: resources.py
+# ============================================================
+
+import dagster as dg
+from sqlalchemy import create_engine
+
+
+class DatabaseResource(dg.ConfigurableResource):
+    connection_string: str
+
+    def get_engine(self):
+        return create_engine(self.connection_string)
+
+
+# ============================================================
+# ===== file: file_reader.py
+# ============================================================
+
+import os
+import pandas as pd
+
+
+def read_from_share_drive(path: str):
+    """
+    👉 REMPLACE cette logique par ta vraie lecture share drive
+    """
+    extension = os.path.splitext(path)[1].lower()
+
+    if extension == ".csv":
+        return pd.read_csv(path)
+
+    elif extension in [".xlsx", ".xls"]:
+        return pd.read_excel(path)
+
+    else:
+        raise ValueError(f"Unsupported file type: {extension}")
+
+
+def list_files_from_share():
+    """
+    👉 REMPLACE avec vraie logique (S3, SMB, GDrive, etc.)
+    """
+    return [
+        "/share/sample1.csv",
+        "/share/sample2.xlsx",
+    ]
+
+
+# ============================================================
+# ===== file: assets.py
+# ============================================================
+
+import dagster as dg
+import hashlib
+import pandas as pd
+from sqlalchemy import text
+from file_reader import read_from_share_drive, list_files_from_share
+
+
+# -------------------------
+# MANUAL FILE INGESTION
+# -------------------------
+
+@dg.asset(
+    config_schema={
+        "file": {"path": str},
+        "target": {"schema": str, "table": str},
+        "transform": {"enabled": bool},
+    },
+    required_resource_keys={"db"},
+)
+def manual_ingestion_asset(context):
+
+    config = context.op_config
+    path = config["file"]["path"]
+    schema = config["target"]["schema"]
+    table = config["target"]["table"]
+    transform_enabled = config["transform"]["enabled"]
+
+    engine = context.resources.db.get_engine()
+
+    # Read file
+    df = read_from_share_drive(path)
+
+    # Optional transform
+    if transform_enabled:
+        df["ingestion_timestamp"] = pd.Timestamp.utcnow()
+
+    # Compute file hash
+    file_hash = hashlib.md5(path.encode()).hexdigest()
+
+    df["_file_path"] = path
+    df["_file_hash"] = file_hash
+    df["_load_timestamp"] = pd.Timestamp.utcnow()
+
+    full_table_name = f"{schema}.{table}"
+
+    with engine.begin() as conn:
+
+        # Create metadata table if not exists
+        conn.execute(text(f"""
+            CREATE TABLE IF NOT EXISTS ingestion_metadata (
+                file_path TEXT,
+                file_hash TEXT,
+                loaded_at TIMESTAMP,
+                target_table TEXT
+            )
+        """))
+
+        # Check if already loaded
+        result = conn.execute(text("""
+            SELECT COUNT(*) FROM ingestion_metadata
+            WHERE file_hash = :file_hash
+        """), {"file_hash": file_hash}).scalar()
+
+        if result > 0:
+            context.log.info("File already ingested. Skipping.")
+            return
+
+        # Create target table if not exists
+        df.head(0).to_sql(
+            table,
+            conn,
+            schema=schema,
+            if_exists="append",
+            index=False,
+        )
+
+        # Insert data
+        df.to_sql(
+            table,
+            conn,
+            schema=schema,
+            if_exists="append",
+            index=False,
+        )
+
+        # Insert metadata
+        conn.execute(text("""
+            INSERT INTO ingestion_metadata (file_path, file_hash, loaded_at, target_table)
+            VALUES (:file_path, :file_hash, NOW(), :target_table)
+        """), {
+            "file_path": path,
+            "file_hash": file_hash,
+            "target_table": full_table_name,
+        })
+
+    context.log.info(f"Loaded {len(df)} rows into {full_table_name}")
+
+
+# -------------------------
+# AUTOMATIC INGESTION
+# -------------------------
+
+@dg.asset(required_resource_keys={"db"})
+def automatic_ingestion_asset(context):
+
+    engine = context.resources.db.get_engine()
+    files = list_files_from_share()
+
+    with engine.begin() as conn:
+
+        # Ensure metadata table exists
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ingestion_metadata (
+                file_path TEXT,
+                file_hash TEXT,
+                loaded_at TIMESTAMP,
+                target_table TEXT
+            )
+        """))
+
+        for path in files:
+
+            file_hash = hashlib.md5(path.encode()).hexdigest()
+
+            already_loaded = conn.execute(text("""
+                SELECT COUNT(*) FROM ingestion_metadata
+                WHERE file_hash = :file_hash
+            """), {"file_hash": file_hash}).scalar()
+
+            if already_loaded > 0:
+                continue
+
+            df = read_from_share_drive(path)
+
+            df["_file_path"] = path
+            df["_file_hash"] = file_hash
+            df["_load_timestamp"] = pd.Timestamp.utcnow()
+
+            # Example target logic (customizable)
+            schema = "public"
+            table = "auto_ingested_data"
+
+            df.head(0).to_sql(
+                table,
+                conn,
+                schema=schema,
+                if_exists="append",
+                index=False,
+            )
+
+            df.to_sql(
+                table,
+                conn,
+                schema=schema,
+                if_exists="append",
+                index=False,
+            )
+
+            conn.execute(text("""
+                INSERT INTO ingestion_metadata (file_path, file_hash, loaded_at, target_table)
+                VALUES (:file_path, :file_hash, NOW(), :target_table)
+            """), {
+                "file_path": path,
+                "file_hash": file_hash,
+                "target_table": f"{schema}.{table}",
+            })
+
+            context.log.info(f"Ingested new file {path}")
+
+
+# ============================================================
+# ===== file: jobs.py
+# ============================================================
+
+manual_job = dg.define_asset_job(
+    name="manual_ingestion_job",
+    selection=["manual_ingestion_asset"],
+)
+
+automatic_job = dg.define_asset_job(
+    name="automatic_ingestion_job",
+    selection=["automatic_ingestion_asset"],
+)
+
+
+# ============================================================
+# ===== file: schedules_and_sensors.py
+# ============================================================
+
+from dagster import ScheduleDefinition
+
+automatic_schedule = ScheduleDefinition(
+    job=automatic_job,
+    cron_schedule="*/15 * * * *",  # every 15 minutes
+)
+
+
+# ============================================================
+# ===== file: definitions.py
+# ============================================================
+
+from dagster import Definitions
+from resources import DatabaseResource
+from assets import manual_ingestion_asset, automatic_ingestion_asset
+from jobs import manual_job, automatic_job
+from schedules_and_sensors import automatic_schedule
+
+defs = Definitions(
+    assets=[
+        manual_ingestion_asset,
+        automatic_ingestion_asset,
+    ],
+    jobs=[manual_job, automatic_job],
+    schedules=[automatic_schedule],
+    resources={
+        "db": DatabaseResource(
+            connection_string="postgresql://user:password@localhost:5432/mydb"
+        )
+    },
+)
+
+
+
 package kafka.reset;
 
 import org.apache.kafka.clients.consumer.*;
