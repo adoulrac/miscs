@@ -1,4 +1,411 @@
 
+
+
+# ============================================================
+# ===== file: resources.py
+# ============================================================
+
+import dagster as dg
+from sqlalchemy import create_engine
+
+
+class DatabaseResource(dg.ConfigurableResource):
+    connection_string: str
+
+    def get_engine(self):
+        return create_engine(self.connection_string)
+
+
+# ============================================================
+# ===== file: file_reader.py
+# ============================================================
+
+import os
+import pandas as pd
+
+
+def read_from_share_drive(path: str):
+    """
+    Replace this with real share drive logic (S3, SMB, etc.)
+    """
+    extension = os.path.splitext(path)[1].lower()
+
+    if extension == ".csv":
+        return pd.read_csv(path)
+
+    elif extension in [".xlsx", ".xls"]:
+        return pd.read_excel(path)
+
+    else:
+        raise ValueError(f"Unsupported file type: {extension}")
+
+
+def list_files_from_share():
+    """
+    Replace with real listing logic
+    """
+    return [
+        "/share/sales_2026_01.csv",
+        "/share/sales_2026_02.xlsx",
+        "/share/customers_2026_01.csv",
+    ]
+
+
+# ============================================================
+# ===== file: utils.py
+# ============================================================
+
+import re
+import hashlib
+import shutil
+import gzip
+import os
+import pandas as pd
+
+
+def match_file_to_target(file_path: str, patterns: list):
+    filename = os.path.basename(file_path)
+    for pattern in patterns:
+        if re.match(pattern["regex"], filename):
+            return pattern["schema"], pattern["table"]
+    return None, None
+
+
+def compute_dataframe_hash(df: pd.DataFrame):
+    return hashlib.md5(
+        pd.util.hash_pandas_object(df, index=True).values
+    ).hexdigest()
+
+
+def compress_file(path: str) -> str:
+    compressed_path = path + ".gz"
+    with open(path, "rb") as f_in:
+        with gzip.open(compressed_path, "wb") as f_out:
+            shutil.copyfileobj(f_in, f_out)
+    return compressed_path
+
+
+def move_file(path: str, target_folder: str) -> str:
+    os.makedirs(target_folder, exist_ok=True)
+    filename = os.path.basename(path)
+    target_path = os.path.join(target_folder, filename)
+    shutil.move(path, target_path)
+    return target_path
+
+
+def postprocess_file(path: str, strategy: str, archive_folder: str = None):
+    if strategy == "none":
+        return path
+
+    if strategy == "compress":
+        return compress_file(path)
+
+    if strategy == "move":
+        return move_file(path, archive_folder)
+
+    if strategy == "move_and_compress":
+        compressed = compress_file(path)
+        return move_file(compressed, archive_folder)
+
+    if strategy == "delete":
+        os.remove(path)
+        return None
+
+    raise ValueError(f"Unknown strategy: {strategy}")
+
+
+# ============================================================
+# ===== file: assets.py
+# ============================================================
+
+import dagster as dg
+import pandas as pd
+import os
+from sqlalchemy import text
+from file_reader import read_from_share_drive, list_files_from_share
+from utils import (
+    match_file_to_target,
+    compute_dataframe_hash,
+    postprocess_file,
+    move_file,
+)
+
+
+@dg.asset(
+    required_resource_keys={"db"},
+    retry_policy=dg.RetryPolicy(max_retries=2),
+    config_schema={
+        "patterns": list,
+        "file_postprocess": {
+            "strategy": str,
+            "archive_folder": str,
+            "quarantine_folder": str,
+        },
+    },
+)
+def automatic_ingestion_asset(context):
+
+    engine = context.resources.db.get_engine()
+    patterns = context.op_config["patterns"]
+    post_cfg = context.op_config["file_postprocess"]
+
+    context.log.info("Starting automatic ingestion job")
+
+    files = list_files_from_share()
+    context.log.info(f"{len(files)} files detected")
+
+    success_count = 0
+    failure_count = 0
+
+    with engine.begin() as conn:
+
+        conn.execute(text("""
+            CREATE TABLE IF NOT EXISTS ingestion_metadata (
+                file_path TEXT,
+                file_hash TEXT,
+                loaded_at TIMESTAMP,
+                target_table TEXT,
+                status TEXT,
+                error_message TEXT
+            )
+        """))
+
+        for path in files:
+
+            context.log.info(f"Processing: {path}")
+
+            try:
+                # Match pattern
+                schema, table = match_file_to_target(path, patterns)
+
+                if not table:
+                    context.log.warning("No pattern match. Skipping.")
+                    continue
+
+                context.log.info(f"Matched → {schema}.{table}")
+
+                # Read file
+                df = read_from_share_drive(path)
+                row_count = len(df)
+
+                if row_count == 0:
+                    context.log.warning("Empty file. Skipping.")
+                    continue
+
+                # Compute content hash
+                file_hash = compute_dataframe_hash(df)
+
+                already_loaded = conn.execute(text("""
+                    SELECT COUNT(*) FROM ingestion_metadata
+                    WHERE file_hash = :file_hash
+                """), {"file_hash": file_hash}).scalar()
+
+                if already_loaded > 0:
+                    context.log.info("Duplicate content. Skipping.")
+                    continue
+
+                # Versioning
+                try:
+                    version = conn.execute(text(f"""
+                        SELECT COALESCE(MAX(_version_id), 0) + 1
+                        FROM {schema}.{table}
+                    """)).scalar()
+                except Exception:
+                    version = 1
+
+                if version is None:
+                    version = 1
+
+                context.log.info(f"New version: {version}")
+
+                # Mark old rows not latest
+                try:
+                    conn.execute(text(f"""
+                        UPDATE {schema}.{table}
+                        SET _is_latest = false
+                    """))
+                except Exception:
+                    context.log.info("Table not existing yet.")
+
+                # Add metadata columns
+                df["_version_id"] = version
+                df["_is_latest"] = True
+                df["_file_name"] = os.path.basename(path)
+                df["_file_hash"] = file_hash
+                df["_load_timestamp"] = pd.Timestamp.utcnow()
+
+                # Ensure table exists
+                df.head(0).to_sql(
+                    table,
+                    conn,
+                    schema=schema,
+                    if_exists="append",
+                    index=False,
+                )
+
+                # Insert
+                df.to_sql(
+                    table,
+                    conn,
+                    schema=schema,
+                    if_exists="append",
+                    index=False,
+                )
+
+                # Save metadata
+                conn.execute(text("""
+                    INSERT INTO ingestion_metadata
+                    (file_path, file_hash, loaded_at, target_table, status)
+                    VALUES (:file_path, :file_hash, NOW(), :target_table, 'SUCCESS')
+                """), {
+                    "file_path": path,
+                    "file_hash": file_hash,
+                    "target_table": f"{schema}.{table}",
+                })
+
+                context.log.info(f"SUCCESS → {schema}.{table}")
+
+                context.add_output_metadata({
+                    "file": path,
+                    "rows": row_count,
+                    "version": version,
+                    "table": f"{schema}.{table}",
+                })
+
+                # Postprocess (only after success)
+                strategy = post_cfg["strategy"]
+                archive_folder = post_cfg.get("archive_folder")
+
+                context.log.info(f"Postprocessing strategy: {strategy}")
+
+                new_location = postprocess_file(
+                    path,
+                    strategy=strategy,
+                    archive_folder=archive_folder,
+                )
+
+                context.log.info(f"Postprocessed → {new_location}")
+
+                success_count += 1
+
+            except Exception as e:
+
+                failure_count += 1
+
+                context.log.error(f"FAILED processing {path}")
+                context.log.exception(e)
+
+                conn.execute(text("""
+                    INSERT INTO ingestion_metadata
+                    (file_path, loaded_at, status, error_message)
+                    VALUES (:file_path, NOW(), 'FAILED', :error_message)
+                """), {
+                    "file_path": path,
+                    "error_message": str(e),
+                })
+
+                # Quarantine if configured
+                quarantine_folder = post_cfg.get("quarantine_folder")
+                if quarantine_folder:
+                    try:
+                        move_file(path, quarantine_folder)
+                        context.log.info("Moved to quarantine")
+                    except Exception as q_err:
+                        context.log.error("Failed quarantine move")
+                        context.log.exception(q_err)
+
+                continue
+
+    context.log.info(
+        f"Ingestion finished. Success: {success_count}, Failures: {failure_count}"
+    )
+
+    if success_count == 0 and failure_count > 0:
+        raise dg.Failure("All files failed ingestion")
+
+
+# ============================================================
+# ===== file: jobs.py
+# ============================================================
+
+automatic_job = dg.define_asset_job(
+    name="automatic_ingestion_job",
+    selection=["automatic_ingestion_asset"],
+)
+
+
+# ============================================================
+# ===== file: schedules.py
+# ============================================================
+
+from dagster import ScheduleDefinition
+from jobs import automatic_job
+
+automatic_schedule = ScheduleDefinition(
+    job=automatic_job,
+    cron_schedule="*/15 * * * *",
+)
+
+
+# ============================================================
+# ===== file: definitions.py
+# ============================================================
+
+from dagster import Definitions
+from resources import DatabaseResource
+from assets import automatic_ingestion_asset
+from jobs import automatic_job
+from schedules import automatic_schedule
+
+defs = Definitions(
+    assets=[automatic_ingestion_asset],
+    jobs=[automatic_job],
+    schedules=[automatic_schedule],
+    resources={
+        "db": DatabaseResource(
+            connection_string="postgresql://user:password@localhost:5432/mydb"
+        )
+    },
+)
+
+ops:
+  automatic_ingestion_asset:
+    config:
+      patterns:
+        - regex: "^sales_.*"
+          schema: "public"
+          table: "sales"
+
+        - regex: "^customers_.*"
+          schema: "public"
+          table: "customers"
+
+      file_postprocess:
+        strategy: "move_and_compress"   # none | move | compress | move_and_compress | delete
+        archive_folder: "/share/archive"
+        quarantine_folder: "/share/quarantine"
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # ============================================================
 # ===== file: resources.py
 # ============================================================
