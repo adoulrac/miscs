@@ -1,0 +1,99 @@
+
+-- ===============================
+-- CLICKHOUSE SECURITY TEST SCRIPT
+-- ===============================
+
+-- 1. Create test database
+CREATE DATABASE IF NOT EXISTS security_test;
+
+-- 2. Create test table
+CREATE TABLE IF NOT EXISTS security_test.sample_table
+(
+    id UInt32,
+    value String
+)
+ENGINE = MergeTree
+ORDER BY id;
+
+-- 3. Insert sample data
+INSERT INTO security_test.sample_table VALUES
+(1,'hello'),
+(2,'clickhouse'),
+(3,'security');
+
+-- 4. Create restricted user (change IP if needed)
+DROP USER IF EXISTS analyst_user;
+
+CREATE USER analyst_user
+IDENTIFIED WITH sha256_password BY 'StrongPassword123'
+HOST IP '127.0.0.1';
+
+-- 5. Grant table access
+GRANT SELECT ON security_test.sample_table TO analyst_user;
+
+-- 6. Verify grants
+SHOW GRANTS FOR analyst_user;
+
+-- 7. Generate some queries as current user (for logs)
+SELECT * FROM security_test.sample_table;
+SELECT count() FROM security_test.sample_table;
+SELECT now();
+
+-- 8. Wait a few seconds for query_log flush (~7.5s)
+
+-- 9. Inspect query logs (IP + queries)
+SELECT
+    event_time,
+    user,
+    address,
+    client_hostname,
+    query
+FROM system.query_log
+WHERE query LIKE '%sample_table%'
+ORDER BY event_time DESC
+LIMIT 10;
+
+-- 10. Inspect session logs (login / logout)
+SELECT
+    user,
+    address,
+    client_hostname,
+    login_time,
+    logout_time
+FROM system.session_log
+ORDER BY login_time DESC
+LIMIT 10;
+
+-- 11. See log retention configuration
+SHOW CREATE TABLE system.query_log;
+
+-- 12. Check log flush interval
+SELECT name, value
+FROM system.settings
+WHERE name LIKE '%query_log_flush_interval%';
+
+-- 13. Audit: all IPs used by users
+SELECT
+    user,
+    address,
+    count() AS queries,
+    min(event_time) AS first_seen,
+    max(event_time) AS last_seen
+FROM system.query_log
+GROUP BY user, address
+ORDER BY queries DESC;
+
+-- 14. Active connections
+SELECT
+    user,
+    address,
+    client_hostname,
+    elapsed
+FROM system.processes;
+
+-- ===============================
+-- CLEANUP (optional)
+-- ===============================
+
+-- DROP USER analyst_user;
+-- DROP DATABASE security_test;
