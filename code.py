@@ -1,4 +1,469 @@
 
+import streamlit as st
+import subprocess
+import threading
+import queue
+import time
+from kubernetes import client, config
+from kubernetes.stream import stream
+
+# ─── Page config ──────────────────────────────────────────────────────────────
+
+st.set_page_config(
+page_title=“K8s Terminal”,
+page_icon=“⬛”,
+layout=“wide”,
+initial_sidebar_state=“expanded”,
+)
+
+# ─── CSS : apparence terminal ──────────────────────────────────────────────────
+
+st.markdown(”””
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&display=swap');
+
+  /* Fond global */
+  .stApp {
+    background-color: #0d1117;
+    color: #c9d1d9;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  /* Sidebar */
+  section[data-testid="stSidebar"] {
+    background-color: #161b22;
+    border-right: 1px solid #30363d;
+  }
+  section[data-testid="stSidebar"] * {
+    font-family: 'JetBrains Mono', monospace !important;
+    color: #8b949e !important;
+  }
+  section[data-testid="stSidebar"] .stSelectbox label,
+  section[data-testid="stSidebar"] h1,
+  section[data-testid="stSidebar"] h2,
+  section[data-testid="stSidebar"] h3 {
+    color: #58a6ff !important;
+  }
+
+  /* Zone terminal */
+  .terminal-window {
+    background-color: #010409;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    padding: 0;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+    margin-bottom: 12px;
+  }
+
+  .terminal-titlebar {
+    background: #161b22;
+    padding: 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #30363d;
+  }
+
+  .dot { width: 12px; height: 12px; border-radius: 50%; }
+  .dot-red   { background: #ff5f57; }
+  .dot-yellow{ background: #febc2e; }
+  .dot-green { background: #28c840; }
+
+  .terminal-title {
+    flex: 1;
+    text-align: center;
+    font-size: 12px;
+    color: #8b949e;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .terminal-body {
+    padding: 14px 16px;
+    min-height: 400px;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    background: #010409;
+    white-space: pre-wrap;
+    word-break: break-all;
+  }
+
+  /* Lignes de sortie */
+  .line-output { color: #c9d1d9; }
+  .line-error  { color: #f85149; }
+  .line-info   { color: #3fb950; }
+  .line-cmd    { color: #79c0ff; }
+  .line-system { color: #8b949e; font-style: italic; }
+
+  /* Prompt */
+  .prompt-container {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: #010409;
+    border-top: 1px solid #21262d;
+    padding: 10px 16px;
+  }
+
+  .prompt-symbol {
+    color: #3fb950;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 14px;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  /* Input Streamlit dans prompt */
+  .prompt-container .stTextInput > div > div > input {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    color: #e6edf3 !important;
+    font-family: 'JetBrains Mono', monospace !important;
+    font-size: 13px !important;
+    padding: 0 !important;
+    caret-color: #3fb950;
+  }
+
+  /* Boutons */
+  .stButton > button {
+    background: #21262d;
+    color: #c9d1d9;
+    border: 1px solid #30363d;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: 4px;
+    transition: all 0.15s;
+  }
+  .stButton > button:hover {
+    background: #30363d;
+    border-color: #58a6ff;
+    color: #58a6ff;
+  }
+
+  /* Badges namespace/pod */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    font-family: 'JetBrains Mono', monospace;
+    margin-right: 4px;
+  }
+  .badge-ns  { background: #1f3a5f; color: #58a6ff; border: 1px solid #1f6feb; }
+  .badge-pod { background: #1a3a2a; color: #3fb950; border: 1px solid #238636; }
+  .badge-container { background: #3a2a1a; color: #d29922; border: 1px solid #9e6a03; }
+
+  /* Masquer les labels Streamlit par défaut */
+  .stTextInput label { display: none !important; }
+
+  /* Scrollbar terminal */
+  .terminal-body::-webkit-scrollbar { width: 6px; }
+  .terminal-body::-webkit-scrollbar-track { background: #010409; }
+  .terminal-body::-webkit-scrollbar-thumb { background: #30363d; border-radius: 3px; }
+
+  /* Status bar */
+  .status-bar {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 4px;
+    padding: 6px 12px;
+    font-size: 11px;
+    color: #8b949e;
+    font-family: 'JetBrains Mono', monospace;
+    display: flex;
+    gap: 16px;
+  }
+  .status-ok   { color: #3fb950; }
+  .status-err  { color: #f85149; }
+</style>
+
+“””, unsafe_allow_html=True)
+
+# ─── Session state ─────────────────────────────────────────────────────────────
+
+def init_state():
+defaults = {
+“history”: [],          # liste de (type, text)
+“namespaces”: [],
+“pods”: [],
+“containers”: [],
+“selected_ns”: None,
+“selected_pod”: None,
+“selected_container”: None,
+“connected”: False,
+“k8s_ready”: False,
+“cmd_input”: “”,
+}
+for k, v in defaults.items():
+if k not in st.session_state:
+st.session_state[k] = v
+
+init_state()
+
+# ─── Helpers K8s ───────────────────────────────────────────────────────────────
+
+def load_k8s():
+“”“Charge la config kubeconfig.”””
+try:
+config.load_kube_config()
+st.session_state.k8s_ready = True
+return True
+except Exception:
+try:
+config.load_incluster_config()
+st.session_state.k8s_ready = True
+return True
+except Exception as e:
+st.session_state.k8s_ready = False
+return False
+
+def get_namespaces():
+v1 = client.CoreV1Api()
+return [ns.metadata.name for ns in v1.list_namespace().items]
+
+def get_pods(namespace):
+v1 = client.CoreV1Api()
+return [p.metadata.name for p in v1.list_namespaced_pod(namespace).items]
+
+def get_containers(namespace, pod):
+v1 = client.CoreV1Api()
+p = v1.read_namespaced_pod(pod, namespace)
+return [c.name for c in p.spec.containers]
+
+def exec_command(namespace, pod, container, command):
+“”“Exécute une commande dans le pod via l’API K8s et retourne (stdout, stderr).”””
+v1 = client.CoreV1Api()
+cmd = [”/bin/sh”, “-c”, command]
+try:
+resp = stream(
+v1.connect_get_namespaced_pod_exec,
+pod, namespace,
+container=container,
+command=cmd,
+stderr=True, stdin=False, stdout=True, tty=False,
+_preload_content=True,
+)
+return resp, “”
+except Exception as e:
+return “”, str(e)
+
+# ─── Fonctions terminal ────────────────────────────────────────────────────────
+
+def add_line(line_type: str, text: str):
+st.session_state.history.append((line_type, text))
+
+def clear_terminal():
+st.session_state.history = []
+
+def render_terminal_body():
+lines_html = “”
+for ltype, text in st.session_state.history:
+esc = text.replace(”&”, “&”).replace(”<”, “<”).replace(”>”, “>”)
+lines_html += f’<div class="line-{ltype}">{esc}</div>\n’
+return lines_html
+
+# ─── Sidebar ───────────────────────────────────────────────────────────────────
+
+with st.sidebar:
+st.markdown(”## ⬛ K8s Terminal”)
+st.markdown(”—”)
+
+```
+# Connexion kubeconfig
+if not st.session_state.k8s_ready:
+    if st.button("🔌 Connecter kubeconfig"):
+        if load_k8s():
+            st.session_state.namespaces = get_namespaces()
+            add_line("info", "✓ Connecté au cluster Kubernetes")
+            st.rerun()
+        else:
+            st.error("Impossible de charger kubeconfig")
+else:
+    st.markdown('<span class="status-ok">● Cluster connecté</span>', unsafe_allow_html=True)
+
+if st.session_state.k8s_ready:
+    st.markdown("### Namespace")
+    ns_list = st.session_state.namespaces or get_namespaces()
+    ns = st.selectbox("", ns_list, key="ns_select", label_visibility="collapsed")
+
+    if ns != st.session_state.selected_ns:
+        st.session_state.selected_ns = ns
+        st.session_state.pods = get_pods(ns)
+        st.session_state.selected_pod = None
+        st.session_state.selected_container = None
+        st.session_state.connected = False
+
+    if st.session_state.pods:
+        st.markdown("### Pod")
+        pod = st.selectbox("", st.session_state.pods, key="pod_select", label_visibility="collapsed")
+
+        if pod != st.session_state.selected_pod:
+            st.session_state.selected_pod = pod
+            st.session_state.containers = get_containers(ns, pod)
+            st.session_state.selected_container = None
+            st.session_state.connected = False
+
+        if st.session_state.containers:
+            st.markdown("### Container")
+            container = st.selectbox("", st.session_state.containers, key="cnt_select", label_visibility="collapsed")
+            st.session_state.selected_container = container
+
+            st.markdown("---")
+            if st.button("▶ exec -it", use_container_width=True):
+                st.session_state.connected = True
+                add_line("system", f"Connecting to {pod}/{container} in namespace {ns}...")
+                add_line("info", f"✓ Shell ouvert — tapez vos commandes")
+                add_line("system", "─" * 50)
+                st.rerun()
+
+            if st.session_state.connected:
+                if st.button("✕ Déconnecter", use_container_width=True):
+                    st.session_state.connected = False
+                    add_line("system", "─" * 50)
+                    add_line("system", "Session terminée.")
+                    st.rerun()
+
+    st.markdown("---")
+    if st.button("🗑 Clear terminal", use_container_width=True):
+        clear_terminal()
+        st.rerun()
+```
+
+# ─── Zone principale ───────────────────────────────────────────────────────────
+
+# Titre + badges
+
+if st.session_state.connected and st.session_state.selected_pod:
+ns_badge   = f’<span class="badge badge-ns">ns: {st.session_state.selected_ns}</span>’
+pod_badge  = f’<span class="badge badge-pod">pod: {st.session_state.selected_pod}</span>’
+cnt_badge  = f’<span class="badge badge-container">ctr: {st.session_state.selected_container}</span>’
+st.markdown(f”{ns_badge} {pod_badge} {cnt_badge}”, unsafe_allow_html=True)
+else:
+st.markdown(’<span style="color:#8b949e;font-family:JetBrains Mono,monospace;font-size:13px;">Sélectionnez un pod dans la sidebar et cliquez sur ▶ exec -it</span>’, unsafe_allow_html=True)
+
+st.markdown(””)
+
+# Fenêtre terminal
+
+title_text = (
+f”{st.session_state.selected_pod} — {st.session_state.selected_container}”
+if st.session_state.connected else “terminal”
+)
+
+body_html = render_terminal_body()
+
+st.markdown(f”””
+
+<div class="terminal-window">
+  <div class="terminal-titlebar">
+    <span class="dot dot-red"></span>
+    <span class="dot dot-yellow"></span>
+    <span class="dot dot-green"></span>
+    <span class="terminal-title">{title_text}</span>
+  </div>
+  <div class="terminal-body" id="terminal-output">
+{body_html if body_html else '<span class="line-system">Prêt.</span>'}
+  </div>
+</div>
+""", unsafe_allow_html=True)
+
+# Auto-scroll
+
+st.markdown(”””
+
+<script>
+  const el = document.getElementById('terminal-output');
+  if (el) el.scrollTop = el.scrollHeight;
+</script>
+
+“””, unsafe_allow_html=True)
+
+# ─── Zone de saisie ────────────────────────────────────────────────────────────
+
+if st.session_state.connected:
+ns  = st.session_state.selected_ns
+pod = st.session_state.selected_pod
+ctr = st.session_state.selected_container
+
+```
+prompt_label = f"{ctr}@{pod}:~$"
+
+col_prompt, col_input, col_run = st.columns([1.8, 8, 1.2])
+
+with col_prompt:
+    st.markdown(f'<div style="padding-top:8px;font-family:JetBrains Mono,monospace;font-size:13px;color:#3fb950;">{prompt_label}</div>', unsafe_allow_html=True)
+
+with col_input:
+    cmd = st.text_input("cmd", key="cmd_field", placeholder="ex: ls -la /app", label_visibility="collapsed")
+
+with col_run:
+    run_btn = st.button("⏎ Run", use_container_width=True)
+
+# Exécution sur bouton Run ou Enter
+if run_btn and cmd.strip():
+    add_line("cmd", f"{prompt_label} {cmd}")
+    with st.spinner(""):
+        stdout, stderr = exec_command(ns, pod, ctr, cmd)
+    if stdout:
+        for line in stdout.splitlines():
+            add_line("output", line)
+    if stderr:
+        for line in stderr.splitlines():
+            add_line("error", line)
+    st.rerun()
+```
+
+else:
+# Pas connecté : champ désactivé
+st.markdown(”””
+<div style="background:#010409;border:1px solid #21262d;border-radius:0 0 8px 8px;
+padding:10px 16px;font-family:'JetBrains Mono',monospace;
+font-size:13px;color:#484f58;">
+$ — sélectionnez un pod pour démarrer une session
+</div>
+“””, unsafe_allow_html=True)
+
+# ─── Barre de statut ───────────────────────────────────────────────────────────
+
+st.markdown(””)
+cmd_count = sum(1 for t, _ in st.session_state.history if t == “cmd”)
+err_count = sum(1 for t, _ in st.session_state.history if t == “error”)
+
+status_k8s   = f’<span class="status-ok">● k8s</span>’ if st.session_state.k8s_ready else ‘<span class="status-err">○ k8s</span>’
+status_sess  = f’<span class="status-ok">● session active</span>’ if st.session_state.connected else ‘<span style="color:#484f58">○ idle</span>’
+status_cmds  = f’<span>{cmd_count} cmd(s)</span>’
+status_errs  = f’<span class="status-err">{err_count} err(s)</span>’ if err_count else f’<span style="color:#484f58">0 err</span>’
+
+st.markdown(f”””
+
+<div class="status-bar">
+  {status_k8s} &nbsp;|&nbsp; {status_sess} &nbsp;|&nbsp; {status_cmds} &nbsp;|&nbsp; {status_errs}
+</div>
+""", unsafe_allow_html=True)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 # ============================================================
