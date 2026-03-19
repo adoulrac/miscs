@@ -1,0 +1,120 @@
+from clickhouse_driver import Client
+import os
+from datetime import datetime
+
+# =========================
+# CONFIG
+# =========================
+CLICKHOUSE_HOST = "localhost"
+CLICKHOUSE_PORT = 9000
+CLICKHOUSE_USER = "default"
+CLICKHOUSE_PASSWORD = ""
+
+OUTPUT_DIR = f"clickhouse_backup_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+
+# =========================
+# CONNECT
+# =========================
+client = Client(
+    host=CLICKHOUSE_HOST,
+    port=CLICKHOUSE_PORT,
+    user=CLICKHOUSE_USER,
+    password=CLICKHOUSE_PASSWORD
+)
+
+os.makedirs(OUTPUT_DIR, exist_ok=True)
+
+full_ddl = []
+
+# =========================
+# DATABASES
+# =========================
+databases = client.execute("""
+    SELECT name, create_database_query
+    FROM system.databases
+    WHERE name NOT IN ('system', 'information_schema')
+""")
+
+for db_name, db_ddl in databases:
+    db_path = os.path.join(OUTPUT_DIR, db_name)
+    os.makedirs(db_path, exist_ok=True)
+
+    # Save database DDL
+    with open(os.path.join(db_path, "database.sql"), "w") as f:
+        f.write(db_ddl + ";\n")
+
+    full_ddl.append(db_ddl + ";")
+
+    # Create subfolders
+    tables_path = os.path.join(db_path, "tables")
+    views_path = os.path.join(db_path, "views")
+    mv_path = os.path.join(db_path, "materialized_views")
+
+    os.makedirs(tables_path, exist_ok=True)
+    os.makedirs(views_path, exist_ok=True)
+    os.makedirs(mv_path, exist_ok=True)
+
+    # =========================
+    # TABLES / VIEWS / MV
+    # =========================
+    objects = client.execute(f"""
+        SELECT
+            name,
+            engine,
+            create_table_query
+        FROM system.tables
+        WHERE database = '{db_name}'
+    """)
+
+    for name, engine, ddl in objects:
+        ddl_statement = ddl + ";"
+        full_ddl.append(ddl_statement)
+
+        if engine == "View":
+            folder = views_path
+        elif engine == "MaterializedView":
+            folder = mv_path
+        else:
+            folder = tables_path
+
+        filename = os.path.join(folder, f"{name}.sql")
+        with open(filename, "w") as f:
+            f.write(ddl_statement + "\n")
+
+# =========================
+# ACCESS CONTROL
+# =========================
+access_path = os.path.join(OUTPUT_DIR, "access")
+os.makedirs(access_path, exist_ok=True)
+
+# Users
+users = client.execute("SELECT name FROM system.users")
+with open(os.path.join(access_path, "users.sql"), "w") as f:
+    for (user,) in users:
+        stmt = f"CREATE USER IF NOT EXISTS {user};"
+        f.write(stmt + "\n")
+        full_ddl.append(stmt)
+
+# Roles
+roles = client.execute("SELECT name FROM system.roles")
+with open(os.path.join(access_path, "roles.sql"), "w") as f:
+    for (role,) in roles:
+        stmt = f"CREATE ROLE IF NOT EXISTS {role};"
+        f.write(stmt + "\n")
+        full_ddl.append(stmt)
+
+# Grants (loop per user)
+with open(os.path.join(access_path, "grants.sql"), "w") as f:
+    for (user,) in users:
+        grants = client.execute(f"SHOW GRANTS FOR {user}")
+        for (grant_stmt,) in grants:
+            f.write(grant_stmt + ";\n")
+            full_ddl.append(grant_stmt + ";")
+
+# =========================
+# FULL DDL FILE
+# =========================
+with open(os.path.join(OUTPUT_DIR, "FULL_DDL.sql"), "w") as f:
+    f.write("\n\n".join(full_ddl))
+
+print(f"✅ Backup completed in folder: {OUTPUT_DIR}")
