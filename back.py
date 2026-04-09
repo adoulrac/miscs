@@ -1,3 +1,155 @@
+from kubernetes import client, config
+from collections import defaultdict
+
+
+def parse_cpu(cpu):
+    if cpu.endswith("n"):
+        return int(cpu[:-1]) / 1e9
+    if cpu.endswith("u"):
+        return int(cpu[:-1]) / 1e6
+    if cpu.endswith("m"):
+        return int(cpu[:-1]) / 1000
+    return float(cpu)
+
+
+def parse_memory(mem):
+    units = {
+        "Ki": 1024,
+        "Mi": 1024**2,
+        "Gi": 1024**3,
+        "Ti": 1024**4
+    }
+
+    for unit in units:
+        if mem.endswith(unit):
+            return int(mem[:-len(unit)]) * units[unit]
+
+    return int(mem)
+
+
+def get_pod_metrics():
+    api = client.CustomObjectsApi()
+
+    metrics = api.list_cluster_custom_object(
+        group="metrics.k8s.io",
+        version="v1beta1",
+        plural="pods"
+    )
+
+    usage_map = {}
+
+    for pod in metrics["items"]:
+        ns = pod["metadata"]["namespace"]
+        name = pod["metadata"]["name"]
+
+        cpu = 0
+        memory = 0
+
+        for container in pod["containers"]:
+            cpu += parse_cpu(container["usage"]["cpu"])
+            memory += parse_memory(container["usage"]["memory"])
+
+        usage_map[(ns, name)] = {
+            "cpu_usage": cpu,
+            "memory_usage": memory
+        }
+
+    return usage_map
+
+
+def get_cluster_node_usage():
+
+    v1 = client.CoreV1Api()
+
+    pods = v1.list_pod_for_all_namespaces().items
+    nodes = v1.list_node().items
+
+    usage_map = get_pod_metrics()
+
+    node_data = {}
+
+    for node in nodes:
+        node_name = node.metadata.name
+
+        node_data[node_name] = {
+            "capacity": {
+                "cpu": node.status.capacity.get("cpu"),
+                "memory": node.status.capacity.get("memory"),
+            },
+            "allocatable": {
+                "cpu": node.status.allocatable.get("cpu"),
+                "memory": node.status.allocatable.get("memory"),
+            },
+            "pods": []
+        }
+
+    for pod in pods:
+
+        if not pod.spec.node_name:
+            continue
+
+        node = pod.spec.node_name
+
+        pod_cpu_request = 0
+        pod_cpu_limit = 0
+        pod_mem_request = 0
+        pod_mem_limit = 0
+
+        for container in pod.spec.containers:
+
+            req = container.resources.requests or {}
+            lim = container.resources.limits or {}
+
+            if "cpu" in req:
+                pod_cpu_request += parse_cpu(req["cpu"])
+
+            if "memory" in req:
+                pod_mem_request += parse_memory(req["memory"])
+
+            if "cpu" in lim:
+                pod_cpu_limit += parse_cpu(lim["cpu"])
+
+            if "memory" in lim:
+                pod_mem_limit += parse_memory(lim["memory"])
+
+        usage = usage_map.get(
+            (pod.metadata.namespace, pod.metadata.name),
+            {"cpu_usage": 0, "memory_usage": 0}
+        )
+
+        pod_info = {
+            "namespace": pod.metadata.namespace,
+            "name": pod.metadata.name,
+            "cpu_request": pod_cpu_request,
+            "cpu_limit": pod_cpu_limit,
+            "memory_request": pod_mem_request,
+            "memory_limit": pod_mem_limit,
+            "cpu_usage": usage["cpu_usage"],
+            "memory_usage": usage["memory_usage"]
+        }
+
+        node_data[node]["pods"].append(pod_info)
+
+    return node_data
+
+
+if __name__ == "__main__":
+
+    # Load config automatically (works locally and in cluster)
+    try:
+        config.load_kube_config()
+    except:
+        config.load_incluster_config()
+
+    data = get_cluster_node_usage()
+
+    import json
+    print(json.dumps(data, indent=2))
+
+
+
+
+
 “””
 backend_k8s.py — FastAPI endpoints pour le terminal K8s
 Gère : listing namespaces/pods, exec one-shot, streaming logs
