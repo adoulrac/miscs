@@ -1,3 +1,286 @@
+import time
+from datetime import datetime
+from typing import Optional
+
+import clickhouse_connect
+from croniter import croniter
+from loguru import logger
+
+
+# -----------------------------
+# CONFIG
+# -----------------------------
+
+CLICKHOUSE_HOST = "localhost"
+CLICKHOUSE_PORT = 8123
+CLICKHOUSE_USER = "default"
+CLICKHOUSE_PASSWORD = ""
+CLICKHOUSE_DATABASE = "default"
+
+POLL_INTERVAL_SECONDS = 60
+
+
+# -----------------------------
+# LOGURU SETUP
+# -----------------------------
+
+logger.remove()
+
+logger.add(
+    "mart_runner.log",
+    rotation="100 MB",
+    retention="10 days",
+    compression="zip",
+    enqueue=True,
+    backtrace=True,
+    diagnose=True,
+)
+
+logger.add(
+    lambda msg: print(msg, end=""),
+    level="INFO",
+)
+
+
+# -----------------------------
+# CLICKHOUSE
+# -----------------------------
+
+def get_client():
+    return clickhouse_connect.get_client(
+        host=CLICKHOUSE_HOST,
+        port=CLICKHOUSE_PORT,
+        username=CLICKHOUSE_USER,
+        password=CLICKHOUSE_PASSWORD,
+        database=CLICKHOUSE_DATABASE,
+    )
+
+
+# -----------------------------
+# CONFIG TABLE
+# -----------------------------
+
+def ensure_config_table(client):
+
+    client.command("""
+    CREATE TABLE IF NOT EXISTS mart_config
+    (
+        mart_name String,
+        target_table String,
+        query String,
+
+        schedule_cron String,
+
+        chunk_column Nullable(String),
+        chunk_size Nullable(UInt64),
+
+        enabled UInt8 DEFAULT 1,
+
+        last_run DateTime DEFAULT toDateTime(0),
+
+        created_at DateTime DEFAULT now()
+    )
+    ENGINE = MergeTree
+    ORDER BY mart_name
+    """)
+
+
+# -----------------------------
+# EXECUTION
+# -----------------------------
+
+def run_simple_insert(client, target_table, query):
+
+    sql = f"""
+    INSERT INTO {target_table}
+    {query}
+    """
+
+    logger.info(f"Running mart insert into {target_table}")
+
+    client.command(sql)
+
+
+def run_chunked_insert(client, target_table, base_query, chunk_column, chunk_size):
+
+    logger.info(
+        f"Running chunked mart column={chunk_column} size={chunk_size}"
+    )
+
+    minmax_query = f"""
+    SELECT
+        min({chunk_column}),
+        max({chunk_column})
+    FROM ({base_query})
+    """
+
+    min_val, max_val = client.query(minmax_query).result_rows[0]
+
+    if min_val is None:
+        logger.info("No data to process")
+        return
+
+    start = min_val
+
+    while start <= max_val:
+
+        end = start + chunk_size
+
+        sql = f"""
+        INSERT INTO {target_table}
+        SELECT *
+        FROM ({base_query})
+        WHERE {chunk_column} >= {start}
+        AND {chunk_column} < {end}
+        """
+
+        logger.info(f"Processing chunk {start} -> {end}")
+
+        client.command(sql)
+
+        start = end
+
+
+def run_mart(client, row):
+
+    (
+        mart_name,
+        target_table,
+        query,
+        cron,
+        chunk_column,
+        chunk_size,
+        last_run
+    ) = row
+
+    logger.info(f"Starting mart {mart_name}")
+
+    if chunk_column and chunk_size:
+
+        run_chunked_insert(
+            client,
+            target_table,
+            query,
+            chunk_column,
+            chunk_size
+        )
+
+    else:
+
+        run_simple_insert(
+            client,
+            target_table,
+            query
+        )
+
+    client.command(f"""
+        ALTER TABLE mart_config
+        UPDATE last_run = now()
+        WHERE mart_name = '{mart_name}'
+    """)
+
+    logger.success(f"Finished mart {mart_name}")
+
+
+# -----------------------------
+# SCHEDULER
+# -----------------------------
+
+def fetch_configs(client):
+
+    rows = client.query("""
+        SELECT
+            mart_name,
+            target_table,
+            query,
+            schedule_cron,
+            chunk_column,
+            chunk_size,
+            last_run
+        FROM mart_config
+        WHERE enabled = 1
+    """).result_rows
+
+    return rows
+
+
+def should_run(cron_expr, last_run):
+
+    now = datetime.utcnow()
+
+    itr = croniter(cron_expr, last_run)
+
+    next_run = itr.get_next(datetime)
+
+    return next_run <= now
+
+
+# -----------------------------
+# MAIN LOOP
+# -----------------------------
+
+def scheduler():
+
+    client = get_client()
+
+    ensure_config_table(client)
+
+    logger.info("Mart runner started")
+
+    while True:
+
+        try:
+
+            rows = fetch_configs(client)
+
+            for row in rows:
+
+                (
+                    mart_name,
+                    target_table,
+                    query,
+                    cron,
+                    chunk_column,
+                    chunk_size,
+                    last_run
+                ) = row
+
+                if should_run(cron, last_run):
+
+                    try:
+
+                        run_mart(client, row)
+
+                    except Exception:
+
+                        logger.exception(
+                            f"Mart {mart_name} failed"
+                        )
+
+        except Exception:
+
+            logger.exception("Scheduler loop error")
+
+        time.sleep(POLL_INTERVAL_SECONDS)
+
+
+# -----------------------------
+# ENTRYPOINT
+# -----------------------------
+
+if __name__ == "__main__":
+
+    scheduler()
+
+
+
+
+
+
+
+
+
+
 from kubernetes import client, config
 from collections import defaultdict
 
