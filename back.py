@@ -1,3 +1,400 @@
+# =========================================================
+# DATAMART PLATFORM — PRODUCTION READY
+# - Thread execution (ACTIVE)
+# - Distributed execution (COMMENTED READY)
+# =========================================================
+
+import clickhouse_connect
+from datetime import datetime
+from croniter import croniter
+from dagster import (
+    job, op, resource, sensor, RunRequest, Definitions,
+    DynamicOut, DynamicOutput
+)
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from loguru import logger
+import os, sys, time, uuid
+
+
+# =========================================================
+# CONFIG
+# =========================================================
+
+CH_HOST = os.getenv("CH_HOST", "localhost")
+CH_PORT = int(os.getenv("CH_PORT", 8123))
+CH_USER = os.getenv("CH_USER", "default")
+CH_PASSWORD = os.getenv("CH_PASSWORD", "")
+CH_DB = os.getenv("CH_DB", "default")
+
+CLUSTER = "y_credal_cluster"
+MAX_CONCURRENCY = 4
+
+
+# =========================================================
+# LOGGING
+# =========================================================
+
+logger.remove()
+logger.add(sys.stdout, level="INFO", enqueue=True)
+logger.add("datamart.log", rotation="500 MB", retention="14 days")
+
+
+# =========================================================
+# CLICKHOUSE RESOURCE + AUTO TABLE CREATION
+# =========================================================
+
+@resource
+def clickhouse():
+
+    client = clickhouse_connect.get_client(
+        host=CH_HOST,
+        port=CH_PORT,
+        username=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DB,
+    )
+
+    # CONFIG TABLE
+    client.command(f"""
+    CREATE TABLE IF NOT EXISTS datamart_config ON CLUSTER {CLUSTER}
+    (
+        datamart_name String,
+        target_table String,
+        query String,
+        schedule_cron String,
+        depends_on Array(String),
+        chunk_column Nullable(String),
+        chunk_size Nullable(UInt64),
+        concurrency Nullable(UInt8),
+        enabled UInt8 DEFAULT 1,
+        last_run DateTime DEFAULT toDateTime(0),
+        created_at DateTime DEFAULT now()
+    )
+    ENGINE = ReplicatedMergeTree('/clickhouse/tables/{{shard}}/datamart_config', '{{replica}}')
+    ORDER BY datamart_name
+    """)
+
+    # LOG TABLE
+    client.command(f"""
+    CREATE TABLE IF NOT EXISTS datamart_log ON CLUSTER {CLUSTER}
+    (
+        run_id String,
+        datamart_name String,
+        target_table String,
+        status String,
+        message String,
+        start_time DateTime,
+        end_time DateTime,
+        duration_sec Float64,
+        chunk_count UInt32,
+        query String,
+        created_at DateTime DEFAULT now()
+    )
+    ENGINE = ReplicatedMergeTree('/clickhouse/tables/{{shard}}/datamart_log', '{{replica}}')
+    ORDER BY (datamart_name, start_time)
+    """)
+
+    return client
+
+
+# =========================================================
+# DAG DEPENDENCIES CHECK
+# =========================================================
+
+def dependencies_ok(client, deps):
+    if not deps:
+        return True
+
+    for d in deps:
+        res = client.query(f"""
+            SELECT max(end_time)
+            FROM datamart_log
+            WHERE datamart_name='{d}' AND status='success'
+        """).result_rows[0][0]
+
+        if res is None:
+            return False
+
+    return True
+
+
+# =========================================================
+# THREAD EXECUTION (ACTIVE)
+# =========================================================
+
+def run_chunk(client, table, query, col, s, e):
+    client.command(f"""
+        INSERT INTO {table}
+        SELECT * FROM ({query})
+        WHERE {col} >= {s} AND {col} < {e}
+    """)
+
+
+def run_parallel(client, table, query, col, size, concurrency):
+
+    minv, maxv = client.query(f"SELECT min({col}), max({col}) FROM ({query})").result_rows[0]
+
+    if minv is None:
+        return 0
+
+    chunks = []
+    cur = minv
+    while cur <= maxv:
+        nxt = cur + size
+        chunks.append((cur, nxt))
+        cur = nxt
+
+    concurrency = min(concurrency or 1, MAX_CONCURRENCY)
+
+    with ThreadPoolExecutor(max_workers=concurrency) as ex:
+        futures = [ex.submit(run_chunk, client, table, query, col, s, e) for s, e in chunks]
+        for f in as_completed(futures):
+            f.result()
+
+    return len(chunks)
+
+
+# =========================================================
+# MAIN OP (THREAD VERSION)
+# =========================================================
+
+@op(required_resource_keys={"clickhouse"}, config_schema=dict)
+def run_datamart(context):
+
+    cfg = context.op_config
+    client = context.resources.clickhouse
+
+    run_id = context.run_id
+    name = cfg["datamart_name"]
+    target = cfg["target_table"]
+
+    tmp = f"{target}__tmp_{uuid.uuid4().hex[:6]}"
+
+    start = datetime.utcnow()
+    t0 = time.time()
+
+    status = "success"
+    message = "success"
+    chunks = 0
+
+    logger.info(f"[{name}] START run_id={run_id}")
+
+    try:
+
+        # temp table (atomic strategy)
+        client.command(f"CREATE TABLE {tmp} AS {target}")
+
+        if cfg.get("chunk_column"):
+            chunks = run_parallel(
+                client,
+                tmp,
+                cfg["query"],
+                cfg["chunk_column"],
+                cfg["chunk_size"],
+                cfg.get("concurrency", 1),
+            )
+        else:
+            client.command(f"INSERT INTO {tmp} {cfg['query']}")
+            chunks = 1
+
+        # swap
+        client.command(f"""
+            RENAME TABLE {target} TO {target}__old,
+                         {tmp} TO {target}
+        """)
+        client.command(f"DROP TABLE {target}__old")
+
+        # update last_run
+        client.command(f"""
+            ALTER TABLE datamart_config
+            UPDATE last_run = now()
+            WHERE datamart_name = '{name}'
+        """)
+
+    except Exception as e:
+
+        status = "failed"
+        message = str(e).replace("'", " ")
+
+        logger.exception(f"[{name}] FAILED")
+
+        client.command(f"DROP TABLE IF EXISTS {tmp}")
+        raise
+
+    finally:
+
+        duration = round(time.time() - t0, 2)
+        end = datetime.utcnow()
+
+        client.command(f"""
+        INSERT INTO datamart_log VALUES (
+            '{run_id}','{name}','{target}','{status}','{message}',
+            toDateTime('{start}'),toDateTime('{end}'),
+            {duration},{chunks},
+            $$ {cfg["query"]} $$,
+            now()
+        )
+        """)
+
+        logger.info(f"[{name}] END status={status} duration={duration}s")
+
+
+# =========================================================
+# JOB (THREAD VERSION ACTIVE)
+# =========================================================
+
+@job(resource_defs={"clickhouse": clickhouse})
+def datamart_job():
+    run_datamart()
+
+
+# =========================================================
+# SENSOR
+# =========================================================
+
+@sensor(job=datamart_job, minimum_interval_seconds=60)
+def datamart_sensor(context):
+
+    client = clickhouse_connect.get_client(
+        host=CH_HOST,
+        port=CH_PORT,
+        username=CH_USER,
+        password=CH_PASSWORD,
+        database=CH_DB,
+    )
+
+    rows = client.query("SELECT * FROM datamart_config WHERE enabled=1").result_rows
+    now = datetime.utcnow()
+
+    for r in rows:
+
+        name, target, query, cron, deps, col, size, conc, _, last_run, _ = r
+
+        if not dependencies_ok(client, deps):
+            continue
+
+        itr = croniter(cron, last_run)
+
+        if itr.get_next(datetime) <= now:
+
+            yield RunRequest(
+                run_key=f"{name}_{now}",
+                run_config={"ops":{"run_datamart":{"config":{
+                    "datamart_name":name,
+                    "target_table":target,
+                    "query":query,
+                    "chunk_column":col,
+                    "chunk_size":size,
+                    "concurrency":conc
+                }}}}
+            )
+
+
+# =========================================================
+# DEFINITIONS
+# =========================================================
+
+defs = Definitions(
+    jobs=[datamart_job],
+    sensors=[datamart_sensor],
+    resources={"clickhouse": clickhouse},
+)
+
+
+# =========================================================
+# =========================================================
+# 🔵 WORKER / DISTRIBUTED VERSION (COMMENTED)
+# =========================================================
+# =========================================================
+
+"""
+UNCOMMENT AND USE THIS IF YOU WANT DISTRIBUTED EXECUTION
+
+STEPS:
+
+1. Replace job with distributed job below
+2. Configure executor:
+   - multiprocess (simple)
+   - or celery / k8s (advanced)
+3. Remove ThreadPool usage
+
+-----------------------------------------
+
+@op(out=DynamicOut())
+def generate_chunks(context, cfg):
+
+    client = context.resources.clickhouse
+
+    minv, maxv = client.query(
+        f"SELECT min({cfg['chunk_column']}), max({cfg['chunk_column']}) FROM ({cfg['query']})"
+    ).result_rows[0]
+
+    size = cfg["chunk_size"]
+
+    cur = minv
+    i = 0
+
+    while cur <= maxv:
+        yield DynamicOutput(
+            {"start": cur, "end": cur + size},
+            mapping_key=str(i)
+        )
+        cur += size
+        i += 1
+
+
+@op(required_resource_keys={"clickhouse"})
+def process_chunk(context, chunk, cfg):
+
+    client = context.resources.clickhouse
+
+    client.command(f"""
+        INSERT INTO {cfg['temp_table']}
+        SELECT *
+        FROM ({cfg['query']})
+        WHERE {cfg['chunk_column']} >= {chunk['start']}
+          AND {cfg['chunk_column']} < {chunk['end']}
+    """)
+
+
+@job(resource_defs={"clickhouse": clickhouse})
+def distributed_datamart_job():
+
+    chunks = generate_chunks()
+    chunks.map(process_chunk)
+
+-----------------------------------------
+
+EXECUTOR CONFIG (example):
+
+execution:
+  config:
+    multiprocess:
+      max_concurrent: 8
+
+-----------------------------------------
+
+ADVANTAGES:
+- scale horizontal
+- retry chunk
+- fault isolation
+
+INCONVENIENTS:
+- more complex
+- requires infra if scaling far
+"""
+
+
+
+
+
+
+
+
+
+
+
+
 import time
 from datetime import datetime
 from typing import Optional
