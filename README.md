@@ -1,3 +1,723 @@
+========================================================
+FRENCH VERSION
+========================================================
+
+# GOUVERNANCE D’ACCÈS ET D’USAGE DE LA PLATEFORME
+# DECISION TREE DÉTAILLÉ
+
+========================================================
+OBJECTIF DE LA PLATEFORME
+========================================================
+
+La plateforme a été créée pour répondre à un besoin réel des métiers de développer rapidement des outils tactiques, analytics et workflows, tout en réduisant les risques liés au Shadow IT non contrôlé.
+
+L’objectif n’est PAS :
+- de remplacer les plateformes IT enterprise ;
+- d’héberger des systèmes critiques ;
+- de contourner les standards IT ;
+- de permettre la création d’applications non maintenues.
+
+L’objectif EST :
+- de réduire le Shadow IT existant ;
+- de centraliser les développements tactiques ;
+- d’apporter du monitoring et de la traçabilité ;
+- d’apporter un cadre de gouvernance minimal ;
+- de fournir des capacités LLM gouvernées ;
+- de permettre l’innovation rapide des métiers ;
+- de remplacer certains outils coûteux lorsque pertinent.
+
+========================================================
+PRINCIPES DE GOUVERNANCE
+========================================================
+
+1. Toute application doit avoir :
+   - un responsable fonctionnel ;
+   - un modèle opérationnel défini ;
+   - un support identifié ;
+   - un monitoring défini ;
+   - une gestion des incidents définie ;
+   - une responsabilité explicite du métier.
+
+2. La plateforme fournit :
+   - infrastructure ;
+   - observabilité ;
+   - sécurité standard ;
+   - outils ;
+   - intégration LLM ;
+   - logging.
+
+3. La plateforme NE fournit PAS :
+   - support applicatif métier ;
+   - SLA enterprise par défaut ;
+   - exploitation critique ;
+   - support 24/7 par défaut ;
+   - ownership fonctionnel.
+
+4. Plus la criticité augmente :
+   - plus la gouvernance augmente ;
+   - plus les validations augmentent ;
+   - plus l’escalade vers l’IT standard devient probable.
+
+========================================================
+POPULATIONS AUTORISÉES
+========================================================
+
+1. FRONT OFFICE
+- Traders
+- Sales
+- Structuring
+- Risk
+- Quant non-IT
+
+Use cases :
+- dashboards analytics ;
+- outils tactiques ;
+- workflow automation ;
+- assistants LLM ;
+- pricing tactique ;
+- reporting ;
+- UI métier ;
+- monitoring business.
+
+Position :
+TRÈS FAVORABLE
+
+Vigilance :
+- éviter systèmes quasi-core trading ;
+- éviter calculs réglementaires officiels ;
+- éviter dépendances critiques ;
+- éviter SLA forts ;
+- éviter chaînes de décision automatiques critiques.
+
+--------------------------------------------------------
+
+2. OPERATIONS / MIDDLE OFFICE / BACK OFFICE
+
+Use cases :
+- automatisation workflows ;
+- document processing ;
+- reconciliation ;
+- assistants opérationnels ;
+- reporting ;
+- orchestration LLM.
+
+Position :
+FAVORABLE AVEC GOUVERNANCE RENFORCÉE
+
+Vigilance :
+- données sensibles ;
+- impacts opérationnels larges ;
+- automatisation de décisions ;
+- risques de propagation transverse.
+
+--------------------------------------------------------
+
+3. FINANCE / SUPPORT FUNCTIONS / AUTRES ENTITÉS
+
+Use cases :
+- dashboards ;
+- reporting ;
+- automatisation locale ;
+- remplacement outils SaaS coûteux ;
+- outils départementaux.
+
+Position :
+AUTORISÉ SI PÉRIMÈTRE MAÎTRISÉ
+
+Vigilance :
+- applications devenant critiques ;
+- absence de support ;
+- croissance non maîtrisée.
+
+--------------------------------------------------------
+
+4. DÉVELOPPEURS NON-IT OPPORTUNISTES
+
+Use cases :
+- prototypes ;
+- petits outils ;
+- scripts ponctuels.
+
+Position :
+AUTORISÉ UNIQUEMENT EN PÉRIMÈTRE LIMITÉ
+
+Vigilance :
+- dette opérationnelle ;
+- absence de maintenance ;
+- dépendance à une seule personne ;
+- “prototype devenu production”.
+
+========================================================
+ARBRE DE DÉCISION COMPLET
+========================================================
+
+START
+│
+├── 1. Type de demande ?
+│       ├── Migration application existante
+│       └── Nouvelle application
+│
+├──────────────────────────────────────────────
+│
+├── A. MIGRATION APPLICATION EXISTANTE
+│
+│     ├── 2. L’application existe déjà hors plateforme ?
+│     │       ├── Oui
+│     │       └── Non → Branche Nouvelle Application
+│     │
+│     ├── 3. L’application est utilisée activement ?
+│     │       ├── Usage quotidien
+│     │       ├── Usage régulier
+│     │       ├── Usage départemental
+│     │       ├── Usage multi-entités
+│     │       └── Peu utilisée
+│     │
+│     ├── 4. Où tourne-t-elle ?
+│     │       ├── Laptop utilisateur
+│     │       ├── Excel/VBA
+│     │       ├── Script Python local
+│     │       ├── VM non gouvernée
+│     │       ├── Serveur départemental
+│     │       ├── Infrastructure non standard
+│     │       └── Outil tiers non contrôlé
+│     │
+│     │       └── Migration fortement encouragée
+│     │
+│     ├── 5. Population métier ?
+│     │       ├── Front Office
+│     │       ├── Operations
+│     │       ├── Finance
+│     │       ├── Support Functions
+│     │       └── Other
+│     │
+│     ├── 6. Use case ?
+│     │       ├── Dashboard
+│     │       ├── Analytics
+│     │       ├── Workflow automation
+│     │       ├── Reporting
+│     │       ├── Assistant LLM
+│     │       ├── Pricing tactique
+│     │       ├── Monitoring business
+│     │       ├── UI métier
+│     │       └── Calcul officiel
+│     │
+│     ├── 7. Niveau de criticité ?
+│     │       ├── Faible
+│     │       ├── Moyenne
+│     │       ├── Élevée
+│     │       └── Critique
+│     │
+│     ├── 8. Si critique :
+│     │       ├── SLA fort ?
+│     │       ├── Support 24/7 ?
+│     │       ├── Haute disponibilité ?
+│     │       ├── Temps réel critique ?
+│     │       ├── Impact financier ?
+│     │       ├── Usage réglementaire ?
+│     │       ├── Décision automatisée ?
+│     │       ├── Dépendance business forte ?
+│     │       ├── Processus officiel banque ?
+│     │       └── Enterprise-wide ?
+│     │
+│     │       ├── Oui → Governance / Architecture Escalation
+│     │       └── Non → Validation conditionnelle
+│     │
+│     ├── 9. Données manipulées ?
+│     │       ├── Données internes
+│     │       ├── Données sensibles
+│     │       ├── Données clients
+│     │       ├── Données réglementées
+│     │       ├── Données trading sensibles
+│     │       └── Documents sensibles
+│     │
+│     ├── 10. Usage LLM ?
+│     │       ├── Oui
+│     │       │
+│     │       ├── Provider approuvé ?
+│     │       ├── Logging activé ?
+│     │       ├── Prompt monitoring activé ?
+│     │       ├── Data retention conforme ?
+│     │       ├── Données sensibles envoyées ?
+│     │       └── AI Governance Review
+│     │
+│     │       └── Non
+│     │
+│     ├── 11. Modèle opérationnel défini ?
+│     │       ├── Support identifié
+│     │       ├── Monitoring défini
+│     │       ├── Alerting défini
+│     │       ├── Incident management défini
+│     │       ├── Maintenance définie
+│     │       ├── Responsable fonctionnel identifié
+│     │       ├── Documentation minimale
+│     │       └── Gestion lifecycle définie
+│     │
+│     │       ├── Oui → APPROVED
+│     │       └── Non → REFUSED TEMPORARILY
+│
+├──────────────────────────────────────────────
+│
+├── B. NOUVELLE APPLICATION
+│
+│     ├── 12. Population métier ?
+│     │       ├── Front Office
+│     │       ├── Operations
+│     │       ├── Finance
+│     │       ├── Support Functions
+│     │       └── Other
+│     │
+│     ├── 13. Objectif principal ?
+│     │       ├── Réduction Shadow IT
+│     │       ├── Productivité
+│     │       ├── Innovation tactique
+│     │       ├── Workflow automation
+│     │       ├── Remplacement outil coûteux
+│     │       ├── Reporting
+│     │       ├── Dashboarding
+│     │       ├── Assistant LLM
+│     │       └── Construction système stratégique
+│     │
+│     │       ├── Système stratégique → REFUSED
+│     │       └── Usage tactique
+│     │
+│     ├── 14. Scope attendu ?
+│     │       ├── Individuel
+│     │       ├── Équipe locale
+│     │       ├── Département
+│     │       ├── Multi-entités
+│     │       └── Enterprise-wide
+│     │
+│     │       ├── Enterprise-wide → Architecture Review
+│     │       └── Scope limité
+│     │
+│     ├── 15. Niveau de criticité ?
+│     │       ├── Faible
+│     │       ├── Moyenne
+│     │       ├── Élevée
+│     │       └── Critique
+│     │
+│     ├── 16. Besoins techniques ?
+│     │       ├── Temps réel critique
+│     │       ├── SLA fort
+│     │       ├── Haute disponibilité
+│     │       ├── Support 24/7
+│     │       ├── Résilience forte
+│     │       └── Gros volumes critiques
+│     │
+│     │       ├── Oui → IT Governance Escalation
+│     │       └── Non
+│     │
+│     ├── 17. Données manipulées ?
+│     │       ├── Données simples
+│     │       ├── Données sensibles
+│     │       ├── Données clients
+│     │       ├── Données réglementées
+│     │       ├── Données marchés sensibles
+│     │       └── Documents confidentiels
+│     │
+│     ├── 18. Usage LLM ?
+│     │       ├── Oui
+│     │       │
+│     │       ├── Provider approuvé ?
+│     │       ├── Monitoring activé ?
+│     │       ├── Logging activé ?
+│     │       ├── Contrôle prompts/réponses ?
+│     │       ├── Protection données sensibles ?
+│     │       └── AI Governance Validation
+│     │
+│     │       └── Non
+│     │
+│     ├── 19. Niveau d’autonomie ?
+│     │       ├── Assisté utilisateur
+│     │       ├── Semi-automatisé
+│     │       └── Décision automatique
+│     │
+│     │       ├── Décision automatique → Risk Escalation
+│     │       └── Assisté
+│     │
+│     ├── 20. Modèle opérationnel défini ?
+│     │       ├── Support identifié
+│     │       ├── Monitoring défini
+│     │       ├── Alerting défini
+│     │       ├── Incident management défini
+│     │       ├── Maintenance définie
+│     │       ├── Lifecycle management défini
+│     │       ├── Documentation minimale
+│     │       └── Responsable fonctionnel identifié
+│     │
+│     │       ├── Oui
+│     │       └── Non → REFUSED
+│     │
+│     └── 21. DÉCISION FINALE
+│             ├── Faible risque → AUTO-APPROVAL
+│             ├── Risque modéré → PLATFORM REVIEW
+│             ├── Risque élevé → GOVERNANCE REVIEW
+│             ├── Cas critique → EXECUTIVE ESCALATION
+│             └── Usage incompatible → REFUSED
+
+========================================================
+ENGLISH VERSION
+========================================================
+
+# PLATFORM ACCESS & USAGE GOVERNANCE
+# DETAILED DECISION TREE
+
+========================================================
+PLATFORM OBJECTIVE
+========================================================
+
+The platform was created to address a real business need for rapidly developing tactical tools, analytics and workflows while reducing risks associated with unmanaged Shadow IT.
+
+The platform is NOT intended:
+- to replace enterprise IT platforms;
+- to host critical systems;
+- to bypass IT standards;
+- to allow unmanaged applications.
+
+The platform IS intended:
+- to reduce existing Shadow IT;
+- to centralize tactical developments;
+- to provide monitoring and traceability;
+- to introduce lightweight governance;
+- to provide governed LLM capabilities;
+- to accelerate business innovation;
+- to replace expensive tools when relevant.
+
+========================================================
+GOVERNANCE PRINCIPLES
+========================================================
+
+1. Every application must have:
+   - a functional owner;
+   - a defined operational model;
+   - identified support;
+   - defined monitoring;
+   - incident management;
+   - explicit business accountability.
+
+2. The platform provides:
+   - infrastructure;
+   - observability;
+   - standard security;
+   - tooling;
+   - LLM integration;
+   - logging.
+
+3. The platform does NOT provide:
+   - business application support;
+   - enterprise SLA by default;
+   - critical operations support;
+   - default 24/7 support;
+   - functional ownership.
+
+4. The higher the criticality:
+   - the stronger the governance;
+   - the stronger the validation requirements;
+   - the higher the probability of escalation to standard IT.
+
+========================================================
+AUTHORIZED POPULATIONS
+========================================================
+
+1. FRONT OFFICE
+- Traders
+- Sales
+- Structuring
+- Risk
+- Non-IT Quants
+
+Typical use cases:
+- analytics dashboards;
+- tactical tools;
+- workflow automation;
+- LLM assistants;
+- tactical pricing;
+- reporting;
+- business UIs;
+- business monitoring.
+
+Position:
+HIGHLY FAVORABLE
+
+Watchpoints:
+- avoid quasi-core trading systems;
+- avoid official regulatory calculations;
+- avoid critical dependencies;
+- avoid strong SLA expectations;
+- avoid critical automated decision chains.
+
+--------------------------------------------------------
+
+2. OPERATIONS / MIDDLE OFFICE / BACK OFFICE
+
+Use cases:
+- workflow automation;
+- document processing;
+- reconciliation;
+- operational assistants;
+- reporting;
+- LLM orchestration.
+
+Position:
+FAVORABLE WITH REINFORCED GOVERNANCE
+
+Watchpoints:
+- sensitive data;
+- large operational impacts;
+- automated decisions;
+- cross-functional propagation risks.
+
+--------------------------------------------------------
+
+3. FINANCE / SUPPORT FUNCTIONS / OTHER ENTITIES
+
+Use cases:
+- dashboards;
+- reporting;
+- local automation;
+- replacement of expensive SaaS tools;
+- departmental applications.
+
+Position:
+ALLOWED IF SCOPE REMAINS CONTROLLED
+
+Watchpoints:
+- applications becoming critical;
+- lack of support;
+- uncontrolled growth.
+
+--------------------------------------------------------
+
+4. OPPORTUNISTIC NON-IT DEVELOPERS
+
+Use cases:
+- prototypes;
+- small tools;
+- ad hoc scripts.
+
+Position:
+ALLOWED ONLY IN LIMITED SCOPE
+
+Watchpoints:
+- operational debt;
+- lack of maintenance;
+- dependency on one person;
+- “prototype becoming production”.
+
+========================================================
+FULL DECISION TREE
+========================================================
+
+START
+│
+├── 1. Request type?
+│       ├── Existing application migration
+│       └── New application
+│
+├──────────────────────────────────────────────
+│
+├── A. EXISTING APPLICATION MIGRATION
+│
+│     ├── 2. Does the application already exist outside the platform?
+│     │       ├── Yes
+│     │       └── No → Switch to New Application branch
+│     │
+│     ├── 3. Is the application actively used?
+│     │       ├── Daily usage
+│     │       ├── Regular usage
+│     │       ├── Departmental usage
+│     │       ├── Multi-entity usage
+│     │       └── Low usage
+│     │
+│     ├── 4. Where is the application currently running?
+│     │       ├── User laptop
+│     │       ├── Excel/VBA
+│     │       ├── Local Python script
+│     │       ├── Unmanaged VM
+│     │       ├── Departmental server
+│     │       ├── Non-standard infrastructure
+│     │       └── Uncontrolled third-party tool
+│     │
+│     │       └── Migration strongly encouraged
+│     │
+│     ├── 5. Business population?
+│     │       ├── Front Office
+│     │       ├── Operations
+│     │       ├── Finance
+│     │       ├── Support Functions
+│     │       └── Other
+│     │
+│     ├── 6. Use case?
+│     │       ├── Dashboard
+│     │       ├── Analytics
+│     │       ├── Workflow automation
+│     │       ├── Reporting
+│     │       ├── LLM Assistant
+│     │       ├── Tactical pricing
+│     │       ├── Business monitoring
+│     │       ├── Business UI
+│     │       └── Official calculation
+│     │
+│     ├── 7. Criticality level?
+│     │       ├── Low
+│     │       ├── Medium
+│     │       ├── High
+│     │       └── Critical
+│     │
+│     ├── 8. If critical:
+│     │       ├── Strong SLA required?
+│     │       ├── 24/7 support required?
+│     │       ├── High availability required?
+│     │       ├── Critical real-time processing?
+│     │       ├── Financial impact?
+│     │       ├── Regulatory usage?
+│     │       ├── Automated decision making?
+│     │       ├── Strong business dependency?
+│     │       ├── Official bank process?
+│     │       └── Enterprise-wide?
+│     │
+│     │       ├── Yes → Governance / Architecture Escalation
+│     │       └── No → Conditional approval
+│     │
+│     ├── 9. Data processed?
+│     │       ├── Internal data
+│     │       ├── Sensitive data
+│     │       ├── Client data
+│     │       ├── Regulated data
+│     │       ├── Sensitive trading data
+│     │       └── Sensitive documents
+│     │
+│     ├── 10. LLM usage?
+│     │       ├── Yes
+│     │       │
+│     │       ├── Approved provider?
+│     │       ├── Logging enabled?
+│     │       ├── Prompt monitoring enabled?
+│     │       ├── Compliant data retention?
+│     │       ├── Sensitive data transmitted?
+│     │       └── AI Governance Review
+│     │
+│     │       └── No
+│     │
+│     ├── 11. Operational model defined?
+│     │       ├── Support identified
+│     │       ├── Monitoring defined
+│     │       ├── Alerting defined
+│     │       ├── Incident management defined
+│     │       ├── Maintenance defined
+│     │       ├── Functional owner identified
+│     │       ├── Minimal documentation
+│     │       └── Lifecycle management defined
+│     │
+│     │       ├── Yes → APPROVED
+│     │       └── No → REFUSED TEMPORARILY
+│
+├──────────────────────────────────────────────
+│
+├── B. NEW APPLICATION
+│
+│     ├── 12. Business population?
+│     │       ├── Front Office
+│     │       ├── Operations
+│     │       ├── Finance
+│     │       ├── Support Functions
+│     │       └── Other
+│     │
+│     ├── 13. Main objective?
+│     │       ├── Shadow IT reduction
+│     │       ├── Productivity improvement
+│     │       ├── Tactical innovation
+│     │       ├── Workflow automation
+│     │       ├── Expensive tool replacement
+│     │       ├── Reporting
+│     │       ├── Dashboarding
+│     │       ├── LLM Assistant
+│     │       └── Strategic system development
+│     │
+│     │       ├── Strategic system → REFUSED
+│     │       └── Tactical usage
+│     │
+│     ├── 14. Expected scope?
+│     │       ├── Individual
+│     │       ├── Local team
+│     │       ├── Department
+│     │       ├── Multi-entity
+│     │       └── Enterprise-wide
+│     │
+│     │       ├── Enterprise-wide → Architecture Review
+│     │       └── Limited scope
+│     │
+│     ├── 15. Criticality level?
+│     │       ├── Low
+│     │       ├── Medium
+│     │       ├── High
+│     │       └── Critical
+│     │
+│     ├── 16. Technical requirements?
+│     │       ├── Critical real-time processing
+│     │       ├── Strong SLA
+│     │       ├── High availability
+│     │       ├── 24/7 support
+│     │       ├── Strong resilience
+│     │       └── Critical large-scale processing
+│     │
+│     │       ├── Yes → IT Governance Escalation
+│     │       └── No
+│     │
+│     ├── 17. Data processed?
+│     │       ├── Simple data
+│     │       ├── Sensitive data
+│     │       ├── Client data
+│     │       ├── Regulated data
+│     │       ├── Sensitive market data
+│     │       └── Confidential documents
+│     │
+│     ├── 18. LLM usage?
+│     │       ├── Yes
+│     │       │
+│     │       ├── Approved provider?
+│     │       ├── Monitoring enabled?
+│     │       ├── Logging enabled?
+│     │       ├── Prompt/response control?
+│     │       ├── Sensitive data protection?
+│     │       └── AI Governance Validation
+│     │
+│     │       └── No
+│     │
+│     ├── 19. Autonomy level?
+│     │       ├── User-assisted
+│     │       ├── Semi-automated
+│     │       └── Fully automated decision making
+│     │
+│     │       ├── Automated decision making → Risk Escalation
+│     │       └── Assisted
+│     │
+│     ├── 20. Operational model defined?
+│     │       ├── Support identified
+│     │       ├── Monitoring defined
+│     │       ├── Alerting defined
+│     │       ├── Incident management defined
+│     │       ├── Maintenance defined
+│     │       ├── Lifecycle management defined
+│     │       ├── Minimal documentation
+│     │       └── Functional owner identified
+│     │
+│     │       ├── Yes
+│     │       └── No → REFUSED
+│     │
+│     └── 21. FINAL DECISION
+│             ├── Low risk → AUTO-APPROVAL
+│             ├── Medium risk → PLATFORM REVIEW
+│             ├── High risk → GOVERNANCE REVIEW
+│             ├── Critical case → EXECUTIVE ESCALATION
+│             └── Incompatible usage → REFUSED
+
+
+
+
+
+
+
 
 
 ========================================================
